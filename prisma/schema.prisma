@@ -1,0 +1,308 @@
+// Perk Loop — relational model (SQLite via Prisma)
+// Core invariant: one loyalty account per (customer, business) — balances NEVER merge.
+// Money is stored in paise (int). Points/stamps are ints. Ledger is append-only.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Identity ────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  phone     String?  @unique
+  name      String?
+  role      String   @default("CUSTOMER") // CUSTOMER | MERCHANT_OWNER | STAFF
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  businessMemberships BusinessMember[]
+  loyaltyAccounts     LoyaltyAccount[]
+  feedbackGiven       Feedback[]
+  notifications       Notification[]
+  redemptions         Redemption[]
+}
+
+// ─── Businesses ──────────────────────────────────────────────────────────────
+
+model Business {
+  id          String   @id @default(cuid())
+  name        String
+  category    String // CAFE | RESTAURANT | SALON | BAKERY | SUPERMARKET | RETAIL | GYM | LAUNDRY | OTHER
+  description String?
+  addressLine String?
+  city        String?
+  state       String?
+  pincode     String?
+  phone       String?
+  logoUrl     String?
+  coverUrl    String?
+  status      String   @default("ACTIVE") // ACTIVE | SUSPENDED
+  isDemo      Boolean  @default(false) // clearly-labeled seeded demo business
+  feedbackEnabled Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  outlets         Outlet[]
+  members         BusinessMember[]
+  programs        LoyaltyProgram[]
+  loyaltyAccounts LoyaltyAccount[]
+  visits          Visit[]
+  txns            TxnQr[]
+  redemptions     Redemption[]
+  feedback        Feedback[]
+  ledgerEntries   LedgerEntry[]
+  auditLogs       AuditLog[]
+}
+
+model Outlet {
+  id          String  @id @default(cuid())
+  businessId  String
+  name        String
+  addressLine String?
+  code        String  @unique @default(cuid()) // static outlet QR code
+  isPrimary   Boolean @default(false)
+  createdAt   DateTime @default(now())
+
+  business Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  txns     TxnQr[]
+  visits   Visit[]
+
+  @@index([businessId])
+}
+
+model BusinessMember {
+  id         String   @id @default(cuid())
+  businessId String
+  userId     String
+  role       String   @default("OWNER") // OWNER | MANAGER | STAFF
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([userId])
+}
+
+// ─── Loyalty programs ────────────────────────────────────────────────────────
+
+model LoyaltyProgram {
+  id               String    @id @default(cuid())
+  businessId       String
+  name             String
+  // POINTS | STAMPS | SERVICE_COUNT | STARS | SPEND | CUSTOM_OFFER
+  type             String
+  // JSON rule config, zod-validated in app layer:
+  //  POINTS:  { pointsPerRupeePaise: 1 }           → points per ₹100 spend
+  //  STAMPS:  { stampsPerVisit: 1, stampsToReward: 5 }
+  //  SERVICE_COUNT: { servicesToReward: 5 }
+  //  STARS:   { starsPerVisit: 1, starsToReward: 10 }
+  //  SPEND:   { spendPaiseToReward: 500000 }
+  //  CUSTOM_OFFER: { offerText: string }
+  config           String    @default("{}")
+  terms            String?
+  status           String    @default("DRAFT") // DRAFT | ACTIVE | PAUSED
+  startsAt         DateTime?
+  endsAt           DateTime?
+  perCustomerLimit Int? // max redemptions per customer (null = unlimited)
+  minSpendPaise    Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  rewards  Reward[]
+
+  @@index([businessId])
+}
+
+// ─── Per-customer, per-business loyalty account (THE core entity) ────────────
+
+model LoyaltyAccount {
+  id          String    @id @default(cuid())
+  customerId  String
+  businessId  String
+  points      Int       @default(0)
+  stamps      Int       @default(0)
+  visitCount  Int       @default(0)
+  lastVisitAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  customer User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  business Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  ledger   LedgerEntry[]
+
+  @@unique([customerId, businessId])
+  @@index([businessId])
+}
+
+// ─── Append-only points ledger ───────────────────────────────────────────────
+
+model LedgerEntry {
+  id           String   @id @default(cuid())
+  accountId    String
+  businessId   String
+  // EARN_POINTS | EARN_STAMP | WELCOME | REDEEM | ADJUST | EXPIRE
+  type         String
+  unit         String // POINTS | STAMPS
+  delta        Int // positive = credit, negative = debit
+  balanceAfter Int
+  description  String?
+  refType      String? // TXN | VISIT | REDEMPTION | MANUAL
+  refId        String?
+  createdAt    DateTime @default(now())
+
+  account LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, createdAt])
+  @@index([businessId])
+}
+
+// ─── Visits & QR transactions ────────────────────────────────────────────────
+
+model Visit {
+  id          String   @id @default(cuid())
+  customerId  String
+  businessId  String
+  outletId    String?
+  source      String // STATIC_QR | TXN
+  createdAt   DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  outlet   Outlet?  @relation(fields: [outletId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, businessId, createdAt])
+}
+
+model TxnQr {
+  id           String    @id @default(cuid())
+  token        String    @unique // random 32+ chars; single-use
+  businessId   String
+  outletId     String
+  amountPaise  Int
+  note         String?
+  status       String    @default("PENDING") // PENDING | CONSUMED | EXPIRED
+  expiresAt    DateTime
+  consumedById String?
+  consumedAt   DateTime?
+  createdById  String
+  createdAt    DateTime  @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  outlet   Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status])
+}
+
+// ─── Rewards & redemptions ───────────────────────────────────────────────────
+
+model Reward {
+  id          String   @id @default(cuid())
+  businessId  String
+  programId   String
+  title       String
+  description String?
+  cost        Int // points or stamps required
+  unit        String   @default("POINTS") // POINTS | STAMPS
+  active      Boolean  @default(true)
+  terms       String?
+  createdAt   DateTime @default(now())
+
+  program     LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  redemptions Redemption[]
+
+  @@index([businessId, active])
+}
+
+model Redemption {
+  id          String    @id @default(cuid())
+  rewardId    String
+  businessId  String
+  customerId  String
+  status      String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
+  cost        Int
+  unit        String
+  createdAt   DateTime  @default(now())
+  decidedAt   DateTime?
+  decidedById String?
+
+  reward   Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status])
+  @@index([customerId])
+}
+
+// ─── Feedback ────────────────────────────────────────────────────────────────
+
+model Feedback {
+  id            String   @id @default(cuid())
+  businessId    String
+  customerId    String
+  refType       String? // VISIT | TXN
+  refId         String?
+  rating        Int // 1..5
+  comment       String?
+  tags          String? // comma-separated structured options
+  createdAt     DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+}
+
+// ─── Auth & ops ──────────────────────────────────────────────────────────────
+
+model OtpCode {
+  id         String    @id @default(cuid())
+  target     String // email address or E.164-ish Indian mobile
+  channel    String // EMAIL | SMS
+  codeHash   String // sha256(code + salt)
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([target, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorType  String // CUSTOMER | MERCHANT | STAFF | SYSTEM
+  actorId    String?
+  businessId String?
+  action     String // e.g. POINTS_ISSUED, REDEMPTION_APPROVED, PROGRAM_UPDATED
+  entity     String?
+  entityId   String?
+  meta       String? // JSON string
+  createdAt  DateTime @default(now())
+
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+}
+
+model Notification {
+  id         String    @id @default(cuid())
+  userId     String
+  businessId String?
+  type       String // REWARD_EARNED | REDEMPTION_UPDATE | OFFER | SYSTEM
+  title      String
+  body       String?
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

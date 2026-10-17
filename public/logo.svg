@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Perk Loop logo">
+  <defs>
+    <linearGradient id="plRing" x1="110" y1="420" x2="420" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#163300"/>
+      <stop offset="1" stop-color="#9FE870"/>
+    </linearGradient>
+  </defs>
+  <path d="M 281.7 110.2 A 148 148 0 1 1 395.1 205.4"
+        stroke="url(#plRing)" stroke-width="50" stroke-linecap="round" fill="none"/>
+  <g transform="translate(356 130) scale(1.05)">
+    <path d="M0 30 C -32 4 -46 -13 -37 -31 C -31 -45 -10 -46 0 -31 C 10 -46 31 -45 37 -31 C 46 -13 32 4 0 30 Z" fill="#F59E0B"/>
+  </g>
+</svg>
