@@ -4,6 +4,14 @@
 
 `Next.js 16` · `TypeScript (strict)` · `Prisma 6 + SQLite` · `Tailwind CSS 4` · `shadcn/ui` · `Zustand` · `Framer Motion`
 
+## Screenshots
+
+| Landing | Customer wallet |
+|---|---|
+| ![Landing page](docs/screenshots/landing.png) | ![Customer wallet](docs/screenshots/customer-wallet.png) |
+| **Merchant dashboard** | **Merchant QR studio** |
+| ![Merchant dashboard](docs/screenshots/merchant-dashboard.png) | ![Merchant QR studio](docs/screenshots/merchant-qr-studio.png) |
+
 ---
 
 ## What's inside
