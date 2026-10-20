@@ -73,11 +73,15 @@ function NotificationRow({ n }: { n: NotificationT }) {
       <div className="min-w-0">
         <p className="text-sm font-semibold leading-snug text-ink">{n.title}</p>
         <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-body">{n.body}</p>
-        <p className="mt-1 font-mono text-[10px] tracking-[0.06em] text-muted-foreground/80 uppercase">
+        <p className="mt-1 font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
           {formatWhen(n.createdAt)}
         </p>
       </div>
-      {!n.readAt && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-marigold" aria-label="New" />}
+      {!n.readAt && (
+        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-marigold">
+          <span className="sr-only">New</span>
+        </span>
+      )}
     </div>
   );
 }
@@ -132,7 +136,7 @@ export function HomeTab({
               <ErrorState message={wallet.error.message} onRetry={wallet.reload} />
             ) : accounts.length === 0 ? (
               <div className="space-y-2">
-                <p className="font-mono text-[10px] font-medium tracking-[0.14em] text-white/50 uppercase">
+                <p className="font-mono text-[11px] font-medium tracking-[0.14em] text-white/50 uppercase">
                   Your wallet
                 </p>
                 <p className="font-display text-xl font-extrabold text-[#FAF7F2]">
@@ -152,7 +156,7 @@ export function HomeTab({
             ) : (
               <>
                 <div className="flex items-start justify-between">
-                  <p className="font-mono text-[10px] font-medium tracking-[0.14em] text-white/50 uppercase">
+                  <p className="font-mono text-[11px] font-medium tracking-[0.14em] text-white/50 uppercase">
                     Collecting at{" "}
                     <span className="text-lime tabular-nums">{accounts.length}</span>{" "}
                     {accounts.length === 1 ? "business" : "businesses"}
@@ -160,7 +164,7 @@ export function HomeTab({
                   <button
                     type="button"
                     onClick={() => navigate("#/app/history")}
-                    className="press rounded-full border border-white/15 bg-white/5 px-3 py-1 font-mono text-[10px] font-medium tracking-[0.1em] text-white/75 uppercase transition-colors hover:bg-white/10"
+                    className="press inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 bg-white/5 px-3.5 py-2 font-mono text-[11px] font-medium tracking-[0.1em] text-white/75 uppercase transition-colors hover:bg-white/10"
                   >
                     Activity
                   </button>
@@ -170,7 +174,7 @@ export function HomeTab({
                     <p className="font-display text-[1.35rem] leading-none font-extrabold text-lime tabular-nums">
                       {totalPoints}
                     </p>
-                    <p className="mt-1.5 font-mono text-[9px] tracking-[0.12em] text-white/55 uppercase">
+                    <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-white/55 uppercase">
                       Points
                     </p>
                   </div>
@@ -178,7 +182,7 @@ export function HomeTab({
                     <p className="font-display text-[1.35rem] leading-none font-extrabold text-lime tabular-nums">
                       {totalStamps}
                     </p>
-                    <p className="mt-1.5 font-mono text-[9px] tracking-[0.12em] text-white/55 uppercase">
+                    <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-white/55 uppercase">
                       Stamps
                     </p>
                   </div>
@@ -186,7 +190,7 @@ export function HomeTab({
                     <p className="font-display text-[1.35rem] leading-none font-extrabold text-marigold tabular-nums">
                       {offersCount}
                     </p>
-                    <p className="mt-1.5 font-mono text-[9px] tracking-[0.12em] text-white/55 uppercase">
+                    <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-white/55 uppercase">
                       Offers ready
                     </p>
                   </div>
@@ -294,7 +298,7 @@ export function HomeTab({
                     <LogoAvatar name={a.business.name} logoUrl={a.business.logoUrl} className="h-10 w-10 text-base" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-display text-sm font-bold text-ink">{a.business.name}</p>
-                      <p className="font-mono text-[10px] tracking-[0.08em] text-muted-foreground uppercase">
+                      <p className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
                         {categoryLabel(a.business.category)}
                         {a.activeRewards.length > 0
                           ? ` · ${a.activeRewards.length} reward${a.activeRewards.length === 1 ? "" : "s"} ready`
@@ -302,8 +306,8 @@ export function HomeTab({
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-display text-base font-extrabold text-sienna tabular-nums">{a.points}</p>
-                      <p className="font-mono text-[9px] tracking-[0.1em] text-muted-foreground uppercase">pts</p>
+                      <p className="font-display text-base font-extrabold text-ink tabular-nums">{a.points}</p>
+                      <p className="font-mono text-[11px] tracking-[0.1em] text-muted-foreground uppercase">pts</p>
                     </div>
                   </div>
                   {(() => {

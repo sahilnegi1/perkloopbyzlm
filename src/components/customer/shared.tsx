@@ -590,7 +590,7 @@ export function BalanceRing({
         {sub && (
           <span
             className={cn(
-              "mt-0.5 text-[10px] font-medium",
+              "mt-0.5 text-[11px] font-medium",
               onDark ? "text-lime/70" : "text-muted-foreground"
             )}
           >
@@ -705,7 +705,7 @@ export function BusinessCard({
           <p className="truncate font-display text-sm font-bold tracking-[-0.01em] text-ink">{business.name}</p>
           {business.isDemo && <DemoBadge />}
         </div>
-        <p className="font-mono text-[10px] tracking-[0.08em] text-muted-foreground uppercase">
+        <p className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
           {categoryLabel(business.category)}
           {business.city ? ` · ${business.city}` : ""}
         </p>

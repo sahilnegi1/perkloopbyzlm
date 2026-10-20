@@ -40,16 +40,16 @@ function PrivacyLink() {
 
 type LegalSection = {
   title: string;
-  lead?: ReactNode[];
+  lead?: string[];
   bullets?: string[];
-  after?: ReactNode[];
+  after?: string[];
 };
 
 type LegalContent = {
   title: string;
   eyebrow: string;
   updated: string;
-  intro: ReactNode[];
+  intro: string[];
   sections: LegalSection[];
 };
 

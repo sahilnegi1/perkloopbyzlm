@@ -116,8 +116,8 @@ export function CategoriesRail() {
                   <cat.icon className="size-5" aria-hidden strokeWidth={1.5} />
                 </span>
                 <p className="font-display mt-4 text-[15px] font-bold text-ink">{cat.name}</p>
-                <p className="mt-1 font-mono text-[10px] font-medium tracking-[0.12em] text-ink/45 uppercase">
-                  Noida · live
+                <p className="mt-1 font-mono text-[11px] font-medium tracking-[0.12em] text-fg-tertiary uppercase">
+                  Noida · pilot
                 </p>
               </li>
             ))}

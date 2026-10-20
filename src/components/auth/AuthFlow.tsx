@@ -62,7 +62,7 @@ function Segmented<T extends string>({
 }) {
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label={ariaLabel}
       className={cn(
         "grid w-full gap-1 rounded-full bg-muted p-1",
@@ -75,8 +75,7 @@ function Segmented<T extends string>({
           <button
             key={o.value}
             type="button"
-            role="tab"
-            aria-selected={active}
+            aria-pressed={active}
             onClick={() => onChange(o.value)}
             className={cn(
               "press flex h-10 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
@@ -328,7 +327,7 @@ export function AuthFlow({
           <div className="space-y-1.5">
             <label
               htmlFor="auth-target"
-              className="mb-1.5 block font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground"
+              className="mb-1.5 block font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground"
             >
               {channel === "EMAIL" ? "Email address" : "Mobile number"}
             </label>

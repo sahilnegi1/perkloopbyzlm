@@ -44,7 +44,7 @@ export function FeaturePreviews() {
                   <Smartphone className="size-4 text-forest" aria-hidden strokeWidth={2} />
                   Customer wallet
                 </p>
-                <span className="font-mono text-[10px] font-medium tracking-[0.12em] text-ink/45 uppercase">
+                <span className="font-mono text-[11px] font-medium tracking-[0.12em] text-fg-tertiary uppercase">
                   Illustration
                 </span>
               </div>
@@ -59,10 +59,10 @@ export function FeaturePreviews() {
                 {/* mini dashboard module */}
                 <div className="rounded-2xl border border-forest/8 bg-white p-5 shadow-soft">
                   <div className="flex items-center justify-between">
-                    <p className="font-mono text-[9px] font-medium tracking-[0.12em] text-ink/50 uppercase">
+                    <p className="font-mono text-[11px] font-medium tracking-[0.12em] text-fg-tertiary uppercase">
                       Visits this week
                     </p>
-                    <p className="font-mono text-[9px] font-medium tracking-[0.12em] text-ink/50 uppercase">
+                    <p className="font-mono text-[11px] font-medium tracking-[0.12em] text-fg-tertiary uppercase">
                       Café A
                     </p>
                   </div>
@@ -84,7 +84,7 @@ export function FeaturePreviews() {
                     {WEEK_DAYS.map((d, i) => (
                       <span
                         key={i}
-                        className={`flex-1 text-center font-mono text-[9px] font-medium ${
+                        className={`flex-1 text-center font-mono text-[11px] font-medium ${
                           i === WEEK_DAYS.length - 1 ? "text-forest" : "text-ink/40"
                         }`}
                       >
@@ -96,7 +96,7 @@ export function FeaturePreviews() {
                   {/* recent activity */}
                   <ul className="mt-4 divide-y divide-forest/8 border-t border-forest/8 pt-1">
                     <li className="flex items-center gap-2.5 py-2.5">
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-forest-soft font-mono text-[9px] font-bold text-forest">
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-forest-soft font-mono text-[11px] font-bold text-forest">
                         +1
                       </span>
                       <p className="min-w-0 flex-1 truncate text-[12px] font-medium text-ink">
@@ -105,7 +105,7 @@ export function FeaturePreviews() {
                       <p className="text-[12px] font-semibold text-forest tabular-nums">Today</p>
                     </li>
                     <li className="flex items-center gap-2.5 py-2.5">
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-marigold-soft font-mono text-[9px] font-bold text-sienna">
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-marigold-soft font-mono text-[11px] font-bold text-sienna">
                         −
                       </span>
                       <p className="min-w-0 flex-1 truncate text-[12px] font-medium text-ink">
@@ -121,7 +121,7 @@ export function FeaturePreviews() {
                   <TrendingUp className="size-4 text-forest" aria-hidden strokeWidth={2} />
                   Merchant dashboard
                 </p>
-                <span className="font-mono text-[10px] font-medium tracking-[0.12em] text-ink/45 uppercase">
+                <span className="font-mono text-[11px] font-medium tracking-[0.12em] text-fg-tertiary uppercase">
                   Illustration
                 </span>
               </div>

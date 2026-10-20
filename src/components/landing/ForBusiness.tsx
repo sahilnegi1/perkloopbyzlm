@@ -81,14 +81,14 @@ export function ForBusiness() {
                 {/* shell header */}
                 <div className="relative flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-mono text-[9px] font-medium tracking-[0.14em] text-white/50 uppercase">
+                    <p className="font-mono text-[11px] font-medium tracking-[0.14em] text-white/50 uppercase">
                       Merchant dashboard
                     </p>
                     <p className="font-display mt-1 text-sm font-bold text-[#FAF7F2]">
                       Café A · Sector 18, Noida
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-[#FAF7F2]/80">
+                  <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#FAF7F2]/80">
                     Illustration
                   </span>
                 </div>
@@ -101,7 +101,7 @@ export function ForBusiness() {
                     { label: "Pending approvals", value: "1", accent: false },
                   ].map((kpi) => (
                     <div key={kpi.label} className="px-3 py-3.5 first:pl-4 last:pr-4">
-                      <dt className="font-mono text-[9px] font-medium tracking-[0.1em] text-white/50 uppercase">
+                      <dt className="font-mono text-[11px] font-medium tracking-[0.1em] text-white/50 uppercase">
                         {kpi.label}
                       </dt>
                       <dd
@@ -125,7 +125,7 @@ export function ForBusiness() {
                       <p className="text-[13px] leading-4 font-semibold text-ink">
                         Free coffee — Redeem request
                       </p>
-                      <p className="mt-0.5 text-[11px] text-ink/55">120 pts · Priya S.</p>
+                      <p className="mt-0.5 text-[11px] text-fg-tertiary">120 pts · Priya S.</p>
                     </div>
                     <span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-lime px-3.5 text-xs font-bold text-forest">
                       <Check className="size-3.5" aria-hidden strokeWidth={2.5} />
@@ -137,7 +137,7 @@ export function ForBusiness() {
                 {/* program settings row */}
                 <div className="relative mt-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3.5 py-3">
                   <p className="flex min-w-0 items-center gap-2 text-xs text-[#FAF7F2]/75">
-                    <QrCode className="size-4 shrink-0 text-[#FAF7F2]/50" aria-hidden strokeWidth={1.5} />
+                    <QrCode className="size-4 shrink-0 text-[#FAF7F2]/65" aria-hidden strokeWidth={1.5} />
                     <span className="truncate">
                       Stamp card · 1 per visit · Cooldown 30 min
                     </span>
@@ -148,7 +148,7 @@ export function ForBusiness() {
                 </div>
 
                 {/* counter hint */}
-                <p className="relative mt-4 flex items-center justify-center gap-1.5 text-[11px] text-[#FAF7F2]/45">
+                <p className="relative mt-4 flex items-center justify-center gap-1.5 text-[11px] text-[#FAF7F2]/65">
                   <Wallet className="size-3.5" aria-hidden strokeWidth={1.75} />
                   Works from any browser — nothing to install at the counter.
                 </p>

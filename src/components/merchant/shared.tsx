@@ -154,7 +154,7 @@ export function formatWhen(iso: string | null | undefined): string {
 
 export function Micro({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className={cn("font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground", className)}>
+    <p className={cn("font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground", className)}>
       {children}
     </p>
   );
@@ -162,7 +162,7 @@ export function Micro({ children, className }: { children: React.ReactNode; clas
 
 export function MicroOnDark({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className={cn("font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-white/50", className)}>
+    <p className={cn("font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-white/50", className)}>
       {children}
     </p>
   );
@@ -239,7 +239,7 @@ export function KpiTile({
 }) {
   return (
     <div className="min-w-0">
-      <p className="font-mono text-[9px] font-medium uppercase tracking-[0.1em] text-white/50">{label}</p>
+      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-white/50">{label}</p>
       <p
         className={cn(
           "font-display mt-1.5 truncate text-xl font-extrabold tabular-nums sm:text-2xl",
@@ -365,7 +365,7 @@ export function RowsSkeleton({ rows = 3 }: { rows?: number }) {
 
 export function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 block font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+    <label htmlFor={htmlFor} className="mb-1.5 block font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
       {children}
     </label>
   );

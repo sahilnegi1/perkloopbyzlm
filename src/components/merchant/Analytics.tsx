@@ -139,7 +139,11 @@ export function AnalyticsScreen({ business }: { business?: BusinessT }) {
                 <h2 className="font-display text-[15px] font-bold text-ink">Visits by window</h2>
                 <Micro>Real counts · no estimates</Micro>
               </div>
-              <div className="h-56">
+              <p className="sr-only">
+                Visits: {a.visits7} in the last 7 days;{" "}
+                {Math.max(0, a.visits30 - a.visits7)} in days 8 to 30.
+              </p>
+              <div className="h-56" aria-hidden="true">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={windowData} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
                     <CartesianGrid vertical={false} stroke="rgba(22,51,0,0.08)" strokeDasharray="0" />

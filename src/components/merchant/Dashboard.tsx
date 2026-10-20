@@ -5,7 +5,7 @@
  * honest), quick actions, pending redemptions preview, recent transactions.
  */
 
-import { Gift, Plus, QrCode, ReceiptText, Ticket } from "lucide-react";
+import { Gift, Plus, QrCode, ReceiptText, ScanLine, Ticket, Wallet } from "lucide-react";
 import { navigate } from "@/lib/hash-router";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/customer/shared";
@@ -45,12 +45,21 @@ export function DashboardScreen({ business }: { business: BusinessT }) {
         eyebrow={`${business.category.toLowerCase().replace("_", " ")} · ${business.city ?? "your city"}`}
         title="Dashboard"
         actions={
-          <Button
-            onClick={() => navigate("#/merchant/qr")}
-            className="press h-10 rounded-full bg-forest px-4 text-sm font-semibold text-primary-foreground hover:bg-forest/90"
-          >
-            <QrCode className="h-4 w-4" aria-hidden /> New amount QR
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => navigate("#/merchant/qr?mode=amount")}
+              variant="outline"
+              className="press h-10 rounded-full px-4 text-sm font-semibold"
+            >
+              <Wallet className="h-4 w-4" aria-hidden /> New amount QR
+            </Button>
+            <Button
+              onClick={() => navigate("#/merchant/qr")}
+              className="press h-10 rounded-full bg-forest px-4 text-sm font-semibold text-primary-foreground hover:bg-forest/90"
+            >
+              <ScanLine className="h-4 w-4" aria-hidden /> Show counter QR
+            </Button>
+          </div>
         }
       />
 
@@ -84,7 +93,7 @@ export function DashboardScreen({ business }: { business: BusinessT }) {
             <button
               type="button"
               onClick={() => navigate("#/merchant/analytics")}
-              className="press hidden font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-lime hover:underline sm:block"
+              className="press hidden font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-lime hover:underline sm:block"
             >
               Full analytics →
             </button>

@@ -6,9 +6,8 @@ import { EASE_HERO, PillCta } from "./primitives";
 import { PhoneMockup } from "./PhoneMockup";
 
 const HERO_WORDS: { text: string; accent?: boolean }[][] = [
-  [{ text: "Your" }, { text: "trust" }, { text: "matters." }],
-  [{ text: "Your" }, { text: "loyalty", accent: true }, { text: "matters." }],
-  [{ text: "And" }, { text: "you" }, { text: "matter.", accent: true }],
+  [{ text: "Your" }, { text: "local" }, { text: "loyalty", accent: true }, { text: "card," }],
+  [{ text: "without" }, { text: "the" }, { text: "card.", accent: true }],
 ];
 
 const CHIPS = [
@@ -141,9 +140,8 @@ export function Hero() {
             animate="show"
             className="mt-6 max-w-[54ch] text-pretty text-base leading-7 text-[#FAF7F2]/75 sm:text-[17px] sm:leading-8"
           >
-            Every visit deserves appreciation. Discover local businesses, earn
-            stamps and points on what you already buy, and get more from the
-            places you love — right in your browser.
+            Collect stamps and points at the cafés, salons and bakeries you
+            already love — no app, no plastic, no fine print.
           </motion.p>
 
           <motion.div
@@ -249,7 +247,7 @@ function HeroMarquee() {
             {MARQUEE_ITEMS.map((item) => (
               <span
                 key={`${copy}-${item}`}
-                className="flex items-center gap-3 font-mono text-[11px] font-medium tracking-[0.18em] whitespace-nowrap text-[#FAF7F2]/50 uppercase"
+                className="flex items-center gap-3 font-mono text-[11px] font-medium tracking-[0.18em] whitespace-nowrap text-[#FAF7F2]/65 uppercase"
               >
                 {item}
                 <span className="size-1 rounded-full bg-lime/60" />

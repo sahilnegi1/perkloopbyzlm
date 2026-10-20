@@ -31,7 +31,7 @@ export function FinalCta() {
               <span className="marker-marigold-dark px-0.5">Come back.</span>
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-7 text-[#FAF7F2]/75 sm:text-[17px]">
-              Join free — your loyalty deserves more.
+              Your trust matters. Your loyalty matters. And you matter.
             </p>
 
             <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
@@ -52,8 +52,8 @@ export function FinalCta() {
               </PillCta>
             </div>
 
-            <p className="mt-8 text-[13px] leading-6 font-medium text-[#FAF7F2]/55">
-              Free for customers · Businesses pay only after their first 50 stamps — pricing at launch.
+            <p className="mt-8 text-[13px] leading-6 font-medium text-[#FAF7F2]/65">
+              Free for customers · Free for businesses during the Noida pilot — we'll announce pricing before we ever charge anyone.
             </p>
           </div>
         </Reveal>

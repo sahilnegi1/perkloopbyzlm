@@ -211,7 +211,7 @@ function SideNavContent({
           <p className="font-display text-[15px] font-bold leading-tight tracking-tight text-[#FAF7F2]">
             Perk Loop
           </p>
-          <p className="truncate font-mono text-[10px] uppercase tracking-[0.08em] text-white/45">
+          <p className="truncate font-mono text-[11px] uppercase tracking-[0.08em] text-white/45">
             {businessName}
             {isDemo ? " · demo" : ""}
           </p>
@@ -328,7 +328,7 @@ export function MerchantApp({ subRoute }: { subRoute: string[] }) {
   if (!business) return <OnboardingScreen />;
 
   const demoBadge = business.isDemo ? (
-    <span className="rounded-full bg-marigold-soft px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-sienna">
+    <span className="rounded-full bg-marigold-soft px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-sienna">
       Demo
     </span>
   ) : null;

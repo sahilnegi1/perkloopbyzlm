@@ -114,7 +114,7 @@ async function seedDemoCustomer(businessId: string) {
   const outlet = await db.outlet.findFirst({ where: { businessId, isPrimary: true } });
 
   // 4 backdated visits over the past 4 days
-  const visits = [];
+  const visits: { id: string; createdAt: Date }[] = [];
   for (let i = 4; i >= 1; i--) {
     const at = new Date(Date.now() - i * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000);
     visits.push(

@@ -249,7 +249,7 @@ function OutletsCard({ business }: { business: BusinessT }) {
             <h2 className="font-display text-[15px] font-bold text-ink">Outlets</h2>
             <Micro>Each outlet gets its own check-in QR</Micro>
           </div>
-          <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{outlets.length}</span>
+          <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{outlets.length}</span>
         </div>
 
         <ul className="divide-y divide-forest/6">
@@ -262,7 +262,7 @@ function OutletsCard({ business }: { business: BusinessT }) {
                 <p className="text-sm font-semibold text-ink">
                   {o.name}
                   {o.isPrimary && (
-                    <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                    <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                       Primary
                     </span>
                   )}

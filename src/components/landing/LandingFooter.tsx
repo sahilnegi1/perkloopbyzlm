@@ -48,7 +48,7 @@ function FooterColumn({
 }) {
   return (
     <nav aria-label={title}>
-      <h2 className="font-mono text-[11px] font-medium tracking-[0.14em] text-[#FAF7F2]/45 uppercase">
+      <h2 className="font-mono text-[11px] font-medium tracking-[0.14em] text-[#FAF7F2]/65 uppercase">
         {title}
       </h2>
       <ul className="mt-4 space-y-2.5">{children}</ul>
@@ -117,7 +117,7 @@ export function LandingFooter() {
           <p className="text-[13px] text-[#FAF7F2]/55">
             © {year} Perk Loop · Made with care in Noida
           </p>
-          <p className="font-mono text-[11px] font-medium tracking-[0.14em] text-[#FAF7F2]/45 uppercase">
+          <p className="font-mono text-[11px] font-medium tracking-[0.14em] text-[#FAF7F2]/65 uppercase">
             Every visit counts.
           </p>
         </div>

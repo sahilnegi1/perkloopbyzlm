@@ -51,6 +51,8 @@
   --color-forest-soft: var(--forest-soft);
   --color-ink: var(--ink);
   --color-body: var(--body);
+  /* Tertiary text — meets 4.5:1 on white AND cream; replaces opacity-based metadata */
+  --color-fg-tertiary: var(--fg-tertiary);
 
   /* Layered warm shadows (docs/DESIGN.md §4) — tinted with forest ink, never black */
   --shadow-soft: 0px 2px 3px -1px rgba(22, 51, 0, 0.1),
@@ -99,6 +101,7 @@
   --sienna: #b4540a;
   --forest: #163300;
   --forest-soft: #e4ead9;
+  --fg-tertiary: #6a6c68;
 
   --chart-1: #0f4d28;
   --chart-2: #9fe870;
@@ -118,49 +121,9 @@
 }
 
 .dark {
-  --background: #131a10;
-  --foreground: #edefe8;
-  --ink: #edefe8;
-  --body: #a3a89c;
-  --card: #1b2415;
-  --card-foreground: #edefe8;
-  --popover: #1b2415;
-  --popover-foreground: #edefe8;
-  --primary: #9fe870;
-  --primary-foreground: #12250f;
-  --secondary: #232d1c;
-  --secondary-foreground: #edefe8;
-  --muted: #232d1c;
-  --muted-foreground: #a3a89c;
-  --accent: #233617;
-  --accent-foreground: #c9ecab;
-  --destructive: #e5533f;
-  --border: #2a3526;
-  --input: #33402e;
-  --ring: #9fe870;
-
-  --lime: #9fe870;
-  --lime-soft: #233617;
-  --marigold: #f5b53f;
-  --marigold-soft: #3a2f14;
-  --sienna: #e07a3f;
-  --forest: #c9ecab;
-  --forest-soft: #233617;
-
-  --chart-1: #9fe870;
-  --chart-2: #f5b53f;
-  --chart-3: #5c7a4a;
-  --chart-4: #e07a3f;
-  --chart-5: #c9ecab;
-
-  --sidebar: #0c1a0b;
-  --sidebar-foreground: #e8ebe6;
-  --sidebar-primary: #9fe870;
-  --sidebar-primary-foreground: #12250f;
-  --sidebar-accent: #1b3a17;
-  --sidebar-accent-foreground: #e8ebe6;
-  --sidebar-border: #23421e;
-  --sidebar-ring: #9fe870;
+  /* Deleted (SYS-02): unreachable dark tokens — next-themes is not mounted, so
+     this block never applied and was unQA'd. Ship dark mode as its own project
+     with a mounted provider and contrast QA before restoring anything here. */
 }
 
 @layer base {
@@ -193,7 +156,9 @@
   }
 
   /* ————— Texture system (DESIGN.md §5) ————— */
-  /* Film grain — fixed overlay, blend mode does the work */
+  /* Film grain — fixed overlay, blend mode does the work.
+     PERF-03: gated off on small/low-data devices — the full-screen
+     mix-blend overlay is expensive on low-end Android GPUs. */
   .grain::after {
     content: "";
     position: fixed;
@@ -203,6 +168,11 @@
     opacity: 0.05;
     mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  @media (max-width: 640px), (prefers-reduced-data: reduce) {
+    .grain::after {
+      display: none;
+    }
   }
   /* Grain scoped to a dark band (stronger) */
   .grain-dark {

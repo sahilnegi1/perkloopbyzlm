@@ -335,7 +335,7 @@ export function BusinessDetail({ businessId, backTo }: { businessId: string; bac
                   <h1 className="font-display text-xl font-extrabold tracking-[-0.02em] text-ink">{b.name}</h1>
                   {b.isDemo && <DemoBadge />}
                 </div>
-                <p className="mt-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                <p className="mt-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   {[b.category && b.category.charAt(0) + b.category.slice(1).toLowerCase(), b.city]
                     .filter(Boolean)
                     .join(" · ")}
@@ -391,7 +391,7 @@ export function BusinessDetail({ businessId, backTo }: { businessId: string; bac
               <div aria-hidden className="absolute -top-16 -right-12 h-44 w-44 rounded-full bg-lime/25 blur-3xl" />
               <div aria-hidden className="dot-grid-dark absolute inset-0 opacity-70" />
               <div className="relative">
-              <p className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-white/50">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-white/50">
                 Your balance here
               </p>
               <div className="mt-3 flex items-center justify-between gap-4">
@@ -400,13 +400,13 @@ export function BusinessDetail({ businessId, backTo }: { businessId: string; bac
                     <p className="font-display text-3xl font-extrabold tabular-nums text-lime">
                       {wallet.data!.account.points}
                     </p>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/55">points</p>
+                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/55">points</p>
                   </div>
                   <div>
                     <p className="font-display text-3xl font-extrabold tabular-nums text-marigold">
                       {wallet.data!.account.stamps}
                     </p>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/55">stamps</p>
+                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/55">stamps</p>
                   </div>
                 </div>
                 <div className="text-center">

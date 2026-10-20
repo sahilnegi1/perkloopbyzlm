@@ -36,7 +36,12 @@ import {
 type Mode = "static" | "amount";
 
 export function QrStudioScreen({ business }: { business: BusinessT }) {
-  const [mode, setMode] = useState<Mode>("static");
+  // Deep-linkable mode: #/merchant/qr?mode=amount opens straight on the Amount QR tab.
+  const [mode, setMode] = useState<Mode>(() =>
+    typeof window !== "undefined" && window.location.hash.includes("mode=amount")
+      ? "amount"
+      : "static"
+  );
   const outlets = business.outlets;
 
   if (outlets.length === 0) {
@@ -123,7 +128,7 @@ function StaticQrPanel({ business }: { business: BusinessT }) {
       <Reveal>
         <div className="perf-x bg-white p-5 shadow-lift">
           <div className="flex min-h-[380px] flex-col items-center justify-center rounded-2xl border-[1.5px] border-dashed border-forest/20 px-6 py-8 text-center">
-            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-sienna">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-sienna">
               {business.name}
             </p>
             <p className="font-display mt-1 text-2xl font-extrabold tracking-[-0.02em] text-ink">
@@ -143,7 +148,7 @@ function StaticQrPanel({ business }: { business: BusinessT }) {
                 <Spinner className="text-forest" />
               </div>
             )}
-            <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
               {outlet.name}
             </p>
             <div className="mt-3 flex items-center gap-1.5 rounded-full bg-lime-soft px-3 py-1.5">
@@ -304,7 +309,7 @@ function AmountQrPanel({ business }: { business: BusinessT }) {
               </>
             ) : (
               <>
-                <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-white/55">
+                <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-white/55">
                   Show this to your customer
                 </p>
                 <img src={qr.dataUrl} alt="One-time payment QR code" className="mt-4 h-56 w-56 rounded-xl bg-white p-2" />

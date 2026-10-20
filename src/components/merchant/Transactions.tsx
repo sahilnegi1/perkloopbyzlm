@@ -64,15 +64,14 @@ export function TransactionsScreen({ business }: { business?: BusinessT }) {
       </Reveal>
 
       {/* Filter chips */}
-      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Filter transactions">
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter transactions">
         {FILTERS.map((f) => (
           <button
             key={f}
             type="button"
-            role="tab"
-            aria-selected={filter === f}
+            aria-pressed={filter === f}
             onClick={() => setFilter(f)}
-            className={`press h-8 rounded-full px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors ${
+            className={`press h-10 rounded-full px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors ${
               filter === f ? "bg-forest text-primary-foreground" : "border border-forest/10 bg-card text-body hover:border-input"
             }`}
           >
