@@ -3,12 +3,14 @@
   "version": "0.2.1",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000 2>&1 | tee dev.log",
+    "dev": "prisma generate --schema prisma/schema.sqlite.prisma && prisma db push --schema prisma/schema.sqlite.prisma --accept-data-loss --skip-generate && bun prisma/seed.ts && next dev -p 3000 2>&1 | tee dev.log",
     "postinstall": "prisma generate",
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "db:push": "prisma db push --accept-data-loss",
+    "db:push:local": "prisma db push --schema prisma/schema.sqlite.prisma --accept-data-loss",
+    "db:seed": "bun prisma/seed.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset"
