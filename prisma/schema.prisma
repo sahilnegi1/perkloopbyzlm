@@ -1,4 +1,4 @@
-// Perk Loop — relational model (SQLite via Prisma)
+// Perk Loop — relational model (PostgreSQL, e.g. Supabase)
 // Core invariant: one loyalty account per (customer, business) — balances NEVER merge.
 // Money is stored in paise (int). Points/stamps are ints. Ledger is append-only.
 
@@ -7,8 +7,11 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Migrations/db push go through a session (non-pgbouncer) connection.
+  // On Supabase: DATABASE_URL = transaction pooler (6543), DIRECT_URL = session pooler (5432).
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Identity ────────────────────────────────────────────────────────────────
