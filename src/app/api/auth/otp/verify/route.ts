@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
 import { audit, ApiErr, handleRoute, maskTarget, publicUser } from "@/lib/auth-helpers";
 import { verifyOtp } from "@/lib/otp";
+import { sendWelcomeEmail } from "@/lib/delivery";
 import { otpVerifySchema, parseBody, normalizePhone } from "@/lib/validation";
 
 /**
@@ -54,6 +55,16 @@ export async function POST(req: NextRequest) {
           body.channel === "EMAIL"
             ? await db.user.create({ data: { email: target, role } })
             : await db.user.create({ data: { phone: target, role } });
+
+        // Best-effort welcome mail (no-op until a provider is configured).
+        // Capped at 3s so registration latency never depends on email delivery.
+        await Promise.race([
+          sendWelcomeEmail({
+            to: target,
+            role: user.role as "CUSTOMER" | "MERCHANT_OWNER" | "STAFF",
+          }).catch(() => undefined),
+          new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+        ]);
       } catch {
         // Lost a create race — the winner's row is the account.
         user =

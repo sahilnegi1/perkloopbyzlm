@@ -32,11 +32,11 @@ export function smsProviderConfigured(): boolean {
 
 export async function sendOtpEmail(target: string, code: string): Promise<DeliveryResult> {
   if (process.env.RESEND_API_KEY) {
-    await sendViaResend(target, code);
+    await sendViaResend(target, otpMail(code));
     return { delivery: "sent", devMode: false };
   }
   if (process.env.SMTP_HOST) {
-    await sendViaSmtpEnv(target, code);
+    await sendViaSmtpEnv(target, otpMail(code));
     return { delivery: "sent", devMode: false };
   }
   return { delivery: "dev", devMode: true, devCode: code };
@@ -52,6 +52,10 @@ export async function sendOtpSms(target: string, code: string): Promise<Delivery
 
 // ─── Resend (HTTP API) ────────────────────────────────────────────────────────
 
+// ─── Outgoing mail primitives (shared by OTP + welcome) ───────────────────
+
+type Mail = { subject: string; text: string };
+
 const EMAIL_SUBJECT = "Your Perk Loop verification code";
 
 function emailBody(code: string): string {
@@ -64,7 +68,11 @@ function emailBody(code: string): string {
   ].join("\n");
 }
 
-async function sendViaResend(target: string, code: string): Promise<void> {
+function otpMail(code: string): Mail {
+  return { subject: EMAIL_SUBJECT, text: emailBody(code) };
+}
+
+async function sendViaResend(target: string, mail: Mail): Promise<void> {
   const from = process.env.SMTP_FROM ?? "Perk Loop <onboarding@resend.dev>";
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -76,8 +84,8 @@ async function sendViaResend(target: string, code: string): Promise<void> {
       body: JSON.stringify({
         from,
         to: [target],
-        subject: EMAIL_SUBJECT,
-        text: emailBody(code),
+        subject: mail.subject,
+        text: mail.text,
       }),
     });
     if (!res.ok) {
@@ -157,7 +165,7 @@ async function waitForConnected(socket: net.Socket, secure: boolean): Promise<vo
   });
 }
 
-async function sendViaSmtpEnv(target: string, code: string): Promise<void> {
+async function sendViaSmtpEnv(target: string, mail: Mail): Promise<void> {
   const host = process.env.SMTP_HOST as string;
   const port = Number(process.env.SMTP_PORT ?? 587);
   const secure = port === 465;
@@ -198,11 +206,11 @@ async function sendViaSmtpEnv(target: string, code: string): Promise<void> {
     const message = [
       `From: Perk Loop <${from}>`,
       `To: <${target}>`,
-      `Subject: ${EMAIL_SUBJECT}`,
+      `Subject: ${mail.subject}`,
       "MIME-Version: 1.0",
       'Content-Type: text/plain; charset="utf-8"',
       "",
-      emailBody(code),
+      mail.text,
     ].join("\r\n");
     // Dot-stuffing per RFC 5321 so lines starting with '.' don't end the data early.
     const stuffed = message.replace(/\r\n\./g, "\r\n..");
@@ -213,6 +221,72 @@ async function sendViaSmtpEnv(target: string, code: string): Promise<void> {
     throw new ApiErr(502, "Email delivery failed on our side. Please try again in a moment.");
   } finally {
     conn.socket.destroy();
+  }
+}
+
+// ─── Welcome email (post-signup, customer + merchant) ────────────────────────
+
+export type WelcomeInput = { to: string; role: "CUSTOMER" | "MERCHANT_OWNER" | "STAFF" };
+
+function welcomeMail(role: WelcomeInput["role"], handle: string): Mail {
+  if (role === "MERCHANT_OWNER") {
+    return {
+      subject: "Welcome to Perk Loop — your loyalty program awaits",
+      text: [
+        `Hi ${handle},`,
+        "",
+        "Your Perk Loop business account is ready.",
+        "",
+        "From your dashboard you can:",
+        "- Launch a punch-card or points program in minutes",
+        "- Print the static check-in QR for your counter",
+        "- Generate amount QRs and approve reward redemptions",
+        "- Track visits, repeat rate and points issued in real time",
+        "",
+        "Sign in, set up your program, and your customers start earning on their very next visit.",
+        "",
+        "— Team Perk Loop",
+        "Noida & Greater Noida",
+      ].join("\n"),
+    };
+  }
+  return {
+    subject: "Welcome to Perk Loop — your wallet is ready",
+    text: [
+      `Hi ${handle},`,
+      "",
+      "Welcome to Perk Loop — India-first loyalty for local shops.",
+      "",
+      "Your wallet is ready:",
+      "- Collect stamps and points at the cafés, salons and bakeries you already love",
+      "- Every business keeps its own separate balance — nothing ever mixes",
+      "- Rewards are confirmed by the shop, so every visit counts for real",
+      "",
+      "Open Perk Loop, scan the counter QR on your next visit, and your first stamp is minutes away.",
+      "",
+      "— Team Perk Loop",
+      "Noida & Greater Noida",
+    ].join("\n"),
+  };
+}
+
+/**
+ * Best-effort welcome mail: silent no-op until an email provider is configured,
+ * and NEVER throws — account creation must not fail or slow down because of it.
+ */
+export async function sendWelcomeEmail(input: WelcomeInput): Promise<void> {
+  if (!emailProviderConfigured()) return;
+  if (!input.to.includes("@")) return; // phone-channel accounts get no welcome mail
+  const handle = input.to.split("@")[0] || "there";
+  const mail = welcomeMail(input.role, handle);
+  try {
+    if (process.env.RESEND_API_KEY) {
+      await sendViaResend(input.to, mail);
+    } else {
+      await sendViaSmtpEnv(input.to, mail);
+    }
+  } catch {
+    // Intentionally swallowed — welcome mail is a nice-to-have, not a contract.
   }
 }
 
