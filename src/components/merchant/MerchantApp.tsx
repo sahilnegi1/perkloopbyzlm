@@ -169,7 +169,7 @@ function OnboardingScreen() {
             <Store className="h-6 w-6 text-lime" strokeWidth={1.75} aria-hidden />
           </div>
           <div>
-            <Micro>Welcome to Perk Loop</Micro>
+            <Micro>Welcome to Reward Jar</Micro>
             <p className="font-display text-lg font-extrabold tracking-[-0.02em] text-ink">
               Set up your shop
             </p>
@@ -209,7 +209,7 @@ function SideNavContent({
         <img src="/logo.svg" alt="" className="h-9 w-9" />
         <div className="min-w-0">
           <p className="font-display text-[15px] font-bold leading-tight tracking-tight text-[#FAF7F2]">
-            Perk Loop
+            Reward Jar
           </p>
           <p className="truncate font-mono text-[11px] uppercase tracking-[0.08em] text-white/45">
             {businessName}

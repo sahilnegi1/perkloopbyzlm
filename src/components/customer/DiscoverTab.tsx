@@ -54,7 +54,7 @@ export function DiscoverTab() {
         <div className="space-y-1.5">
           <h1 className="font-display text-[1.75rem] font-extrabold tracking-[-0.02em] text-ink">Discover</h1>
           <p className="text-sm text-muted-foreground">
-            Local businesses running loyalty programs on Perk Loop.
+            Local businesses running loyalty programs on Reward Jar.
           </p>
         </div>
       </Reveal>
@@ -117,8 +117,8 @@ export function DiscoverTab() {
           title={filtersActive ? "Nothing matches that" : "No businesses yet"}
           line={
             filtersActive
-              ? "Try a different search or clear the filters — new shops join Perk Loop regularly."
-              : "Shops join Perk Loop one by one. Check back soon, or tell your favourite local shop about us."
+              ? "Try a different search or clear the filters — new shops join Reward Jar regularly."
+              : "Shops join Reward Jar one by one. Check back soon, or tell your favourite local shop about us."
           }
           action={
             filtersActive ? (

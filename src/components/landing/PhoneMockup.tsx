@@ -11,7 +11,7 @@ import { Logo, StampRow } from "./primitives";
 export function PhoneMockup() {
   return (
     <figure
-      aria-label="Product illustration of the Perk Loop customer wallet"
+      aria-label="Product illustration of the Reward Jar customer wallet"
       className="relative w-fit"
     >
       <div className="relative w-[270px] rounded-[2.75rem] border border-white/15 bg-[#0B2400] p-[10px] shadow-lift sm:w-[300px]">

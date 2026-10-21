@@ -1,6 +1,6 @@
 "use client";
 
-/** Typed fetch client for the Perk Loop SPA. Relative paths only (gateway rule). */
+/** Typed fetch client for the Reward Jar SPA. Relative paths only (gateway rule). */
 
 export class ApiError extends Error {
   status: number;

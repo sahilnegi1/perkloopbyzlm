@@ -25,10 +25,10 @@ export default function Home() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background">
-        <img src="/logo.svg" alt="Perk Loop" className="h-14 w-14" />
+        <img src="/logo.svg" alt="Reward Jar" className="h-14 w-14" />
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          Loading Perk Loop…
+          Loading Reward Jar…
         </div>
       </div>
     );

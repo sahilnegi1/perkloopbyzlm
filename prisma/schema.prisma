@@ -1,4 +1,4 @@
-// Perk Loop — relational model (PostgreSQL, e.g. Supabase)
+// Reward Jar — relational model (PostgreSQL, e.g. Supabase)
 // Core invariant: one loyalty account per (customer, business) — balances NEVER merge.
 // Money is stored in paise (int). Points/stamps are ints. Ledger is append-only.
 

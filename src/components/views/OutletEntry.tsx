@@ -115,10 +115,10 @@ export function OutletEntry({ code }: { code: string }) {
             <EmptyState
               icon={QrCode}
               title="This code is not valid"
-              line="The QR code doesn't match any shop on Perk Loop. Double-check you scanned the right poster, or ask the shop for help."
+              line="The QR code doesn't match any shop on Reward Jar. Double-check you scanned the right poster, or ask the shop for help."
               action={
                 <Button onClick={() => navigate("#/")} className="press h-11 rounded-full px-5 font-semibold">
-                  Open Perk Loop
+                  Open Reward Jar
                 </Button>
               }
             />
@@ -204,7 +204,7 @@ export function OutletEntry({ code }: { code: string }) {
                 onClick={() => navigate("#/")}
                 className="press mx-auto block text-sm font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
               >
-                What is Perk Loop?
+                What is Reward Jar?
               </button>
             </div>
           </Reveal>

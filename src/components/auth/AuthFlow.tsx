@@ -369,7 +369,7 @@ export function AuthFlow({
           <p className="text-center text-sm text-muted-foreground">
             {mode === "login" ? (
               <>
-                New to Perk Loop?{" "}
+                New to Reward Jar?{" "}
                 <button
                   type="button"
                   onClick={switchToRegister}

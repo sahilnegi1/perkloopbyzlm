@@ -150,8 +150,8 @@ export function ProfileTab() {
             <LinkRow
               icon={Mail}
               label="Email support"
-              sub="support@perkloop.in — we usually reply within a day"
-              href="mailto:support@perkloop.in?subject=Perk%20Loop%20support"
+              sub="rewardjarsupport@gmail.com — we usually reply within a day"
+              href="mailto:rewardjarsupport@gmail.com?subject=Reward%20Jar%20support"
             />
             <LinkRow icon={HelpCircle} label="FAQ" sub="How stamps, points and rewards work" href="#/faq" />
             <LinkRow icon={ShieldCheck} label="Data & privacy" sub="What we store and why" href="#/privacy" />
@@ -189,7 +189,7 @@ export function ProfileTab() {
 
       <Reveal delay={0.24}>
         <p className="text-center text-xs text-muted-foreground">
-          Perk Loop · Shop Local. Earn Rewards. Come Back.
+          Reward Jar · Shop Local. Earn Rewards. Come Back.
         </p>
       </Reveal>
     </div>

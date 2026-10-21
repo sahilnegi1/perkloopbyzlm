@@ -344,7 +344,7 @@ export function useApiData<T>(path: string | null): ApiState<T> {
             error:
               e instanceof ApiError
                 ? e
-                : new ApiError(0, "Couldn't reach Perk Loop. Check your connection and try again."),
+                : new ApiError(0, "Couldn't reach Reward Jar. Check your connection and try again."),
           });
       });
     return () => {

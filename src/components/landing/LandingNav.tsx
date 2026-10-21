@@ -31,12 +31,12 @@ export function LandingNav() {
       >
         <a
           href="#/"
-          aria-label="Perk Loop — home"
+          aria-label="Reward Jar — home"
           className={`press flex items-center gap-2.5 rounded-full ${linkFocus}`}
         >
           <Logo className="h-7 w-7" />
           <span className="font-display text-[17px] font-bold tracking-tight text-[#FAF7F2]">
-            Perk&nbsp;Loop
+            Reward&nbsp;Jar
           </span>
         </a>
 
@@ -88,7 +88,7 @@ export function LandingNav() {
                 <div className="flex items-center gap-2.5">
                   <Logo />
                   <SheetTitle className="font-display text-lg font-bold text-ink">
-                    Perk Loop
+                    Reward Jar
                   </SheetTitle>
                 </div>
                 <SheetDescription className="text-xs text-muted-foreground">

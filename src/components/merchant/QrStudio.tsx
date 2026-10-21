@@ -191,7 +191,7 @@ function StaticQrPanel({ business }: { business: BusinessT }) {
                   if (!dataUrl) return;
                   const a = document.createElement("a");
                   a.href = dataUrl;
-                  a.download = `perkloop-qr-${outlet.name.replace(/\W+/g, "-").toLowerCase()}.png`;
+                  a.download = `rewardjar-qr-${outlet.name.replace(/\W+/g, "-").toLowerCase()}.png`;
                   a.click();
                 }}
                 className="press h-11 rounded-full font-semibold"

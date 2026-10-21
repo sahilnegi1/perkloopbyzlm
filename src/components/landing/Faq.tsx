@@ -11,16 +11,16 @@ import { Reveal, SectionHead } from "./primitives";
 
 const FAQS: { q: string; a: ReactNode }[] = [
   {
-    q: "Is Perk Loop free for customers?",
-    a: "Yes. Joining Perk Loop and earning stamps and points is completely free. You pay only for what you already buy at the shop — the loyalty layer costs you nothing.",
+    q: "Is Reward Jar free for customers?",
+    a: "Yes. Joining Reward Jar and earning stamps and points is completely free. You pay only for what you already buy at the shop — the loyalty layer costs you nothing.",
   },
   {
     q: "Do I need to download an app?",
-    a: "No. Perk Loop works in your phone's browser. Scan a shop's QR code, sign in once, and your wallet is right there — no app store, no storage space.",
+    a: "No. Reward Jar works in your phone's browser. Scan a shop's QR code, sign in once, and your wallet is right there — no app store, no storage space.",
   },
   {
     q: "How do I earn a stamp?",
-    a: "Scan the shop's Perk Loop QR code at the counter each time you visit. The shop's program then adds a stamp or points to your balance with them — confirmed by the shop, never self-reported.",
+    a: "Scan the shop's Reward Jar QR code at the counter each time you visit. The shop's program then adds a stamp or points to your balance with them — confirmed by the shop, never self-reported.",
   },
   {
     q: "Can I move points between businesses?",
@@ -28,7 +28,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
   },
   {
     q: "How does a business join?",
-    a: "The owner registers on Perk Loop, shapes a program — stamp card, points, or spend-based — and prints or displays their QR code. There is no hardware to buy and no setup fee; the whole thing runs from a browser.",
+    a: "The owner registers on Reward Jar, shapes a program — stamp card, points, or spend-based — and prints or displays their QR code. There is no hardware to buy and no setup fee; the whole thing runs from a browser.",
   },
   {
     q: "What happens to my data?",
@@ -61,7 +61,7 @@ export function Faq() {
           index="05"
           eyebrow="FAQ"
           title="Questions, answered."
-          sub="Straight answers, no fine print. Anything else? Write to us at hello@perkloop.in — a human reads every message."
+          sub="Straight answers, no fine print. Anything else? Write to us at rewardjarsupport@gmail.com — a human reads every message."
         />
 
         <Reveal delay={140} className="mt-10">

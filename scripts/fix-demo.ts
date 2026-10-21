@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client'
 const db = new PrismaClient()
 async function main() {
   const cust = await db.user.findFirst({ where: { email: 'qa-customer@perkloop.in' } })
-  const biz = await db.business.findFirst({ where: { name: 'Perk Loop Demo Café' } })
+  const biz = await db.business.findFirst({ where: { name: 'Reward Jar Demo Café' } })
   if (!cust || !biz) throw new Error('missing demo entities')
   // name for the greeting
   await db.user.update({ where: { id: cust.id }, data: { name: 'Aarav' } })
@@ -13,7 +13,7 @@ async function main() {
     for (const v of visits) {
       await db.notification.create({ data: {
         userId: cust.id, businessId: biz.id, type: 'REWARD_EARNED',
-        title: 'Stamp earned at Perk Loop Demo Café',
+        title: 'Stamp earned at Reward Jar Demo Café',
         body: 'Your visit was recorded — 1 stamp added to your punch card.',
         createdAt: v.createdAt,
       } })

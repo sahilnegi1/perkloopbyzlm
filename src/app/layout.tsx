@@ -22,25 +22,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Perk Loop — Your Loyalty Deserves More",
+  title: "Reward Jar — Your Loyalty Deserves More",
   description:
-    "Perk Loop is India-first loyalty and rewards. Discover local businesses, earn rewards on every visit, and get more from the places you love. Shop local. Earn rewards. Come back.",
+    "Reward Jar is India-first loyalty and rewards. Discover local businesses, earn rewards on every visit, and get more from the places you love. Shop local. Earn rewards. Come back.",
   keywords: [
-    "Perk Loop",
+    "Reward Jar",
     "loyalty rewards India",
     "local business loyalty",
     "stamp card app",
     "Noida rewards",
   ],
-  authors: [{ name: "Perk Loop" }],
+  authors: [{ name: "Reward Jar" }],
   icons: {
     icon: "/logo.svg",
   },
   openGraph: {
-    title: "Perk Loop — Your Loyalty Deserves More",
+    title: "Reward Jar — Your Loyalty Deserves More",
     description:
       "Discover local businesses, earn rewards on every visit, and get more from the places you love.",
-    siteName: "Perk Loop",
+    siteName: "Reward Jar",
     type: "website",
   },
 };

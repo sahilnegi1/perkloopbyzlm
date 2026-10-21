@@ -9,7 +9,7 @@ function secret(): Uint8Array {
     process.env.SESSION_SECRET ??
     // Dev fallback so the app runs without extra env setup in the sandbox.
     // Production deployments must set SESSION_SECRET (documented in delivery notes).
-    "perk-loop-dev-secret-do-not-use-in-production-0123456789";
+    "reward-jar-dev-secret-do-not-use-in-production-0123456789";
   return new TextEncoder().encode(raw);
 }
 
@@ -22,7 +22,7 @@ export async function createSession(payload: SessionPayload): Promise<void> {
   const token = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setIssuer("perk-loop")
+    .setIssuer("reward-jar")
     .setExpirationTime(`${SESSION_DAYS}d`)
     .sign(secret());
 
@@ -46,7 +46,7 @@ export async function getSession(): Promise<SessionPayload | null> {
   const token = jar.get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secret(), { issuer: "perk-loop" });
+    const { payload } = await jwtVerify(token, secret(), { issuer: "reward-jar" });
     if (
       typeof payload.userId !== "string" ||
       (payload.role !== "CUSTOMER" &&

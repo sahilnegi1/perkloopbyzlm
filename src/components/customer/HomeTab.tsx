@@ -143,7 +143,7 @@ export function HomeTab({
                   Ready when you are
                 </p>
                 <p className="text-sm leading-6 text-white/70">
-                  Scan a shop's Perk Loop QR code to start collecting stamps and points.
+                  Scan a shop's Reward Jar QR code to start collecting stamps and points.
                 </p>
                 <Button
                   onClick={() => navigate("#/app/scan")}
@@ -230,7 +230,7 @@ export function HomeTab({
             <EmptyState
               icon={Sparkles}
               title="No businesses yet"
-              line="Shops join Perk Loop one by one. Check Discover soon — or tell your favourite local shop about us."
+              line="Shops join Reward Jar one by one. Check Discover soon — or tell your favourite local shop about us."
             />
           ) : (
             <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 scroll-slim" role="list">

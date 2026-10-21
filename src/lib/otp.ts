@@ -15,7 +15,7 @@ import { sendOtpEmail, sendOtpSms } from "@/lib/delivery";
 const OTP_TTL_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN_MS = 60 * 1000;
-const OTP_SALT = process.env.OTP_SALT ?? "perk-loop-otp-salt-v1";
+const OTP_SALT = process.env.OTP_SALT ?? "reward-jar-otp-salt-v1";
 
 function hashCode(code: string, target: string): string {
   return crypto.createHash("sha256").update(`${code}${target}${OTP_SALT}`).digest("hex");

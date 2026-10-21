@@ -12,7 +12,7 @@ const PRODUCT_LINKS = [
 const COMPANY_LINKS = [
   { label: "Privacy", href: "#/privacy" },
   { label: "Terms", href: "#/terms" },
-  { label: "Contact — hello@perkloop.in", href: "mailto:hello@perkloop.in" },
+  { label: "Contact — rewardjarsupport@gmail.com", href: "mailto:rewardjarsupport@gmail.com" },
 ];
 
 const LAUNCH_CITY = ["Noida", "Greater Noida", "Delhi NCR — soon"];
@@ -69,12 +69,12 @@ export function LandingFooter() {
           <div>
             <a
               href="#/"
-              aria-label="Perk Loop — home"
+              aria-label="Reward Jar — home"
               className={`press inline-flex items-center gap-2.5 ${linkFocus}`}
             >
               <Logo />
               <span className="font-display text-lg font-bold tracking-tight text-[#FAF7F2]">
-                Perk&nbsp;Loop
+                Reward&nbsp;Jar
               </span>
             </a>
             <p className="mt-3 text-sm font-semibold text-[#FAF7F2]/90">
@@ -115,7 +115,7 @@ export function LandingFooter() {
 
         <div className="mt-12 flex flex-col justify-between gap-3 border-t hairline-dark pt-6 sm:flex-row sm:items-center">
           <p className="text-[13px] text-[#FAF7F2]/55">
-            © {year} Perk Loop · Made with care in Noida
+            © {year} Reward Jar · Made with care in Noida
           </p>
           <p className="font-mono text-[11px] font-medium tracking-[0.14em] text-[#FAF7F2]/65 uppercase">
             Every visit counts.

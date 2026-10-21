@@ -35,7 +35,7 @@ const arrowClasses =
 
 /**
  * Linen band (#F1EEE9, surface L2) with a horizontal pan-rail of the shop
- * categories Perk Loop launches with. Native scroll (reduced-motion safe),
+ * categories Reward Jar launches with. Native scroll (reduced-motion safe),
  * scroll-snap proximity, keyboard-reachable overflow region, and circular
  * arrow buttons that hide on touch-only devices.
  */

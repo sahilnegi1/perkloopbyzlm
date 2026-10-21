@@ -45,7 +45,7 @@ export function HowItWorks() {
               <span className="marker-lime px-0.5">whole trick.</span>
             </>
           }
-          sub="Perk Loop replaces torn paper stamp cards with a wallet that lives in your browser and never leaves your phone."
+          sub="Reward Jar replaces torn paper stamp cards with a wallet that lives in your browser and never leaves your phone."
         />
 
         {/* Dashed connector behind the row — visible only in the card gaps (desktop) */}

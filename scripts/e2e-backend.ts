@@ -1,6 +1,6 @@
 export {};
 
-/** Perk Loop backend E2E smoke test (sandbox). Run: bun scripts/e2e-backend.ts */
+/** Reward Jar backend E2E smoke test (sandbox). Run: bun scripts/e2e-backend.ts */
 const B = "http://localhost:3000";
 const PASS: string[] = [];
 const FAIL: string[] = [];

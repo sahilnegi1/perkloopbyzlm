@@ -31,7 +31,7 @@ const ITEMS = [
  */
 export function TrustStrip() {
   return (
-    <section aria-label="Why Perk Loop" className="relative">
+    <section aria-label="Why Reward Jar" className="relative">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:py-20">
         <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
           {ITEMS.map((item, i) => (

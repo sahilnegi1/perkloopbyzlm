@@ -22,7 +22,7 @@ function BrandPanel() {
       />
       <div className="relative flex items-center gap-3">
         <img src="/logo.svg" alt="" className="h-10 w-10" />
-        <span className="font-display text-lg font-bold text-primary-foreground">Perk Loop</span>
+        <span className="font-display text-lg font-bold text-primary-foreground">Reward Jar</span>
       </div>
       <div className="relative max-w-md space-y-5">
         <h2 className="font-display text-[2.6rem] font-extrabold leading-[1.08] tracking-[-0.02em] text-[#FAF7F2]">
@@ -50,8 +50,8 @@ export function AuthView({
       <BrandPanel />
       <main className="flex min-h-dvh flex-col px-5 py-8 sm:px-8 lg:min-h-0 lg:justify-center lg:py-12">
         <div className="mx-auto mb-6 flex items-center gap-2.5 lg:hidden">
-          <img src="/logo.svg" alt="Perk Loop" className="h-8 w-8" />
-          <span className="font-display text-lg font-bold">Perk Loop</span>
+          <img src="/logo.svg" alt="Reward Jar" className="h-8 w-8" />
+          <span className="font-display text-lg font-bold">Reward Jar</span>
         </div>
         <Reveal>
           <AuthFlow initialRole={initialRole} initialMode={initialMode} />

@@ -1,4 +1,4 @@
--- Perk Loop — Supabase security baseline (from Backend Setup Playbook, Step 4)
+-- Reward Jar — Supabase security baseline (from Backend Setup Playbook, Step 4)
 -- Run once in Supabase SQL Editor (or via DIRECT_URL) AFTER `prisma db push`.
 -- Our app connects as role `postgres` (Prisma) — unaffected by these revokes.
 -- Goal: even though we never use the Data API in browsers, ensure no anon/

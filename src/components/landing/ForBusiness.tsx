@@ -26,7 +26,7 @@ export function ForBusiness() {
               index="03"
               eyebrow="For business owners"
               title="A loyalty program that runs itself."
-              sub="No paper cards to print, no POS hardware to install. Set up your program once in the browser, keep your QR at the counter, and Perk Loop records every visit — with you approving every reward."
+              sub="No paper cards to print, no POS hardware to install. Set up your program once in the browser, keep your QR at the counter, and Reward Jar records every visit — with you approving every reward."
             />
 
             <Reveal delay={160}>
@@ -67,7 +67,7 @@ export function ForBusiness() {
           {/* ——— Merchant dashboard illustration ——— */}
           <Reveal delay={120}>
             <figure
-              aria-label="Product illustration of the Perk Loop merchant dashboard"
+              aria-label="Product illustration of the Reward Jar merchant dashboard"
               className="relative mx-auto w-full max-w-[520px] lg:max-w-none"
             >
               <div className="relative rounded-[24px] bg-[#10240F] p-5 shadow-lift grain-dark sm:p-6">

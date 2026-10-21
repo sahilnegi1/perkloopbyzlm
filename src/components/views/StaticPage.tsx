@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { Logo, PillCta } from "@/components/landing/primitives";
 
-const CONTACT = "hello@perkloop.in";
+const CONTACT = "rewardjarsupport@gmail.com";
 
 function MailLink() {
   return (
@@ -60,13 +60,13 @@ const PRIVACY: LegalContent = {
   eyebrow: "Privacy",
   updated: LAST_UPDATED,
   intro: [
-    "Plain language, because trust is the whole point. This policy explains what Perk Loop collects, why, and what you can do about it. See also our <TermsLink/>.",
+    "Plain language, because trust is the whole point. This policy explains what Reward Jar collects, why, and what you can do about it. See also our <TermsLink/>.",
   ],
   sections: [
     {
       title: "1. Who we are",
       lead: [
-        "Perk Loop ('we', 'us') is a loyalty platform that connects customers with local businesses in India. Customers earn stamps and points at shops they visit; businesses run and approve their own loyalty programs. We operate the service in your browser and can be contacted at <MailLink/>. We are pre-launch, rolling out first in Noida and Greater Noida.",
+        "Reward Jar ('we', 'us') is a loyalty platform that connects customers with local businesses in India. Customers earn stamps and points at shops they visit; businesses run and approve their own loyalty programs. We operate the service in your browser and can be contacted at <MailLink/>. We are pre-launch, rolling out first in Noida and Greater Noida.",
       ],
     },
     {
@@ -82,7 +82,7 @@ const PRIVACY: LegalContent = {
     {
       title: "3. What we don't do",
       lead: [
-        "We don't sell your personal data — not to businesses on Perk Loop, not to advertisers, not to anyone. We don't run advertising trackers or follow you across other websites, and we don't track your location in the background. When the app shows shops near you, that's based on the area you pick, not continuous monitoring.",
+        "We don't sell your personal data — not to businesses on Reward Jar, not to advertisers, not to anyone. We don't run advertising trackers or follow you across other websites, and we don't track your location in the background. When the app shows shops near you, that's based on the area you pick, not continuous monitoring.",
       ],
     },
     {
@@ -113,7 +113,7 @@ const PRIVACY: LegalContent = {
     {
       title: "6. Cookies",
       lead: [
-        "Perk Loop uses exactly one cookie: an essential, httpOnly session cookie that keeps you signed in. It carries no tracking identifiers and is deleted when you sign out or the session expires. We use no advertising or analytics cookies.",
+        "Reward Jar uses exactly one cookie: an essential, httpOnly session cookie that keeps you signed in. It carries no tracking identifiers and is deleted when you sign out or the session expires. We use no advertising or analytics cookies.",
       ],
     },
     {
@@ -148,13 +148,13 @@ const TERMS: LegalContent = {
   eyebrow: "Terms",
   updated: LAST_UPDATED,
   intro: [
-    "The short version: Perk Loop records loyalty between you and the shops you visit, honestly. These terms explain the rules on both sides. See also our <PrivacyLink/>.",
+    "The short version: Reward Jar records loyalty between you and the shops you visit, honestly. These terms explain the rules on both sides. See also our <PrivacyLink/>.",
   ],
   sections: [
     {
       title: "1. The service",
       lead: [
-        "Perk Loop is a loyalty platform for local businesses in India. Customers collect stamps or points at businesses they visit and redeem them for rewards the business has published. Businesses create their own programs, verify visits through QR codes, and approve redemptions. Perk Loop provides and records all of this — it is not a payment service; you pay shops directly, as usual. The service works in your browser with no app download, and is rolling out first in Noida and Greater Noida.",
+        "Reward Jar is a loyalty platform for local businesses in India. Customers collect stamps or points at businesses they visit and redeem them for rewards the business has published. Businesses create their own programs, verify visits through QR codes, and approve redemptions. Reward Jar provides and records all of this — it is not a payment service; you pay shops directly, as usual. The service works in your browser with no app download, and is rolling out first in Noida and Greater Noida.",
       ],
     },
     {
@@ -173,7 +173,7 @@ const TERMS: LegalContent = {
       bullets: [
         "Every stamp, point and reward belongs to a specific business. A balance with one shop can never be moved, merged or spent at another.",
         "Balances have no cash value. They cannot be sold, transferred, exchanged for money or withdrawn — they exist only to unlock rewards at the business that issued them.",
-        "Rewards are offers made by each business, not by Perk Loop. A business may change or end its program going forward; if a business leaves Perk Loop or closes, its rewards and balances end with it.",
+        "Rewards are offers made by each business, not by Reward Jar. A business may change or end its program going forward; if a business leaves Reward Jar or closes, its rewards and balances end with it.",
         "A redemption is complete only after the business approves it. Every visit, issuance and redemption is recorded in an audit trail you can see in your wallet.",
       ],
       after: [
@@ -182,7 +182,7 @@ const TERMS: LegalContent = {
     },
     {
       title: "4. Acceptable use",
-      lead: ["Perk Loop only works if balances reflect real visits. Don't:"],
+      lead: ["Reward Jar only works if balances reflect real visits. Don't:"],
       bullets: [
         "Scan a shop's QR code when you (or the person you're paying for) didn't actually visit.",
         "Create multiple accounts to farm welcome or first-visit rewards.",
@@ -196,7 +196,7 @@ const TERMS: LegalContent = {
     },
     {
       title: "5. For businesses",
-      lead: ["If you register a business on Perk Loop, you agree to:"],
+      lead: ["If you register a business on Reward Jar, you agree to:"],
       bullets: [
         "Run programs honestly and honour the rewards you publish.",
         "Not change program rules retroactively in a way that erases rewards customers have already earned.",
@@ -264,12 +264,12 @@ export function StaticPage({ page }: { page: "privacy" | "terms" }) {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <a
             href="#/"
-            aria-label="Perk Loop — home"
+            aria-label="Reward Jar — home"
             className="press inline-flex items-center gap-2.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <Logo />
             <span className="font-display text-lg font-bold tracking-tight text-primary">
-              Perk Loop
+              Reward Jar
             </span>
           </a>
           <div className="flex items-center gap-2">
@@ -352,7 +352,7 @@ export function StaticPage({ page }: { page: "privacy" | "terms" }) {
 
         {/* Honest framing — required line */}
         <aside className="mt-12 rounded-2xl border border-border bg-muted p-4 text-[13px] leading-6 text-muted-foreground">
-          This page describes how Perk Loop works in plain language and is
+          This page describes how Reward Jar works in plain language and is
           provided for information only — it is not legal advice.
         </aside>
       </main>
@@ -364,7 +364,7 @@ export function StaticPage({ page }: { page: "privacy" | "terms" }) {
             <div className="flex items-center gap-2.5">
               <Logo className="h-6 w-6" />
               <span className="font-display text-base font-bold text-primary">
-                Perk Loop
+                Reward Jar
               </span>
               <span aria-hidden className="mx-1 h-4 w-px bg-border" />
               <span className="text-[13px] text-muted-foreground">
@@ -395,7 +395,7 @@ export function StaticPage({ page }: { page: "privacy" | "terms" }) {
             </nav>
           </div>
           <p className="mt-6 text-center text-xs text-muted-foreground sm:text-left">
-            © {year} Perk Loop · Made with care in Noida, India · Pre-launch —
+            © {year} Reward Jar · Made with care in Noida, India · Pre-launch —
             rolling out across NCR.
           </p>
         </div>

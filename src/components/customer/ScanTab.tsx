@@ -20,7 +20,7 @@ type Parsed =
   | { kind: "txn"; token: string; href: string };
 
 /** Extract an outlet code or txn token from raw text (URL, code, or token). */
-export function parsePerkCode(raw: string): Parsed | null {
+export function parseRewardCode(raw: string): Parsed | null {
   const value = raw.trim();
   if (!value) return null;
 
@@ -53,9 +53,9 @@ export function ScanTab() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const go = () => {
-    const parsed = parsePerkCode(value);
+    const parsed = parseRewardCode(value);
     if (!parsed) {
-      setError("That doesn't look like a Perk Loop code. Paste the shop's outlet code, a payment code, or the full link.");
+      setError("That doesn't look like a Reward Jar code. Paste the shop's outlet code, a payment code, or the full link.");
       return;
     }
     setError(null);
@@ -64,7 +64,7 @@ export function ScanTab() {
   };
 
   const openParsed = (raw: string): boolean => {
-    const parsed = parsePerkCode(raw);
+    const parsed = parseRewardCode(raw);
     if (!parsed) return false;
     navigate(parsed.href);
     return true;
@@ -88,9 +88,9 @@ export function ScanTab() {
         return;
       }
       if (!openParsed(hits[0].rawValue)) {
-        // Decoded something, but it isn't a Perk Loop payload — let the user see/edit it.
+        // Decoded something, but it isn't a Reward Jar payload — let the user see/edit it.
         setValue(hits[0].rawValue);
-        setError("Found a code, but it isn't a Perk Loop QR. Check the text below or paste the shop's code.");
+        setError("Found a code, but it isn't a Reward Jar QR. Check the text below or paste the shop's code.");
       }
     } catch {
       setError("Couldn't read that photo. Try again in better light — or paste the code below.");
@@ -132,7 +132,7 @@ export function ScanTab() {
             Scan the counter QR
           </h2>
           <p className="mt-1.5 text-sm leading-relaxed text-primary-foreground/75">
-            Take a photo of the shop's Perk Loop QR code — we read it right on your
+            Take a photo of the shop's Reward Jar QR code — we read it right on your
             phone. No app download, nothing to install.
           </p>
 
@@ -181,7 +181,7 @@ export function ScanTab() {
                 if (e.key === "Enter" && !busy) go();
               }}
               placeholder="e.g. cmvx…  ·  a payment code  ·  full URL"
-              aria-label="Perk Loop code"
+              aria-label="Reward Jar code"
               className={cn("h-12 rounded-xl font-mono text-sm", error && "border-destructive")}
               aria-invalid={Boolean(error)}
             />
@@ -216,7 +216,7 @@ export function ScanTab() {
         <EmptyState
           icon={ScanLine}
           title="Where's the QR code?"
-          line="Every participating shop keeps a Perk Loop QR at the counter — ask at the till if you can't spot it."
+          line="Every participating shop keeps a Reward Jar QR at the counter — ask at the till if you can't spot it."
         />
       </Reveal>
     </div>

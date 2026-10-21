@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { ApiErr, audit } from "@/lib/auth-helpers";
 
 /**
- * Perk Loop loyalty engine — the ONLY place balances move.
+ * Reward Jar loyalty engine — the ONLY place balances move.
  *
  * Invariants (security spec, treated as law):
  * 1. Accounts are unique per (customerId, businessId). Points of business A can

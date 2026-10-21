@@ -278,7 +278,7 @@ export function BusinessDetail({ businessId, backTo }: { businessId: string; bac
         <EmptyState
           icon={QrCode}
           title="Business not found"
-          line="This business isn't on Perk Loop anymore, or the link is wrong."
+          line="This business isn't on Reward Jar anymore, or the link is wrong."
           action={
             <Button onClick={() => navigate("#/app/discover")} className="press h-11 rounded-full px-5 font-semibold">
               Browse businesses

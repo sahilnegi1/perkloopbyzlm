@@ -40,7 +40,7 @@ export function MerchantOwnerGate({ via }: { via: string }) {
               ? "Shop check-ins and stamp cards work from a customer account. Your business-owner account runs the merchant dashboard instead."
               : via === "txn"
                 ? "Confirming a payment QR needs a customer account — business-owner accounts collect rewards for your customers, not for you."
-                : "The wallet, visits and rewards in this app belong to customer accounts. Your account is set up to run a business on Perk Loop."}
+                : "The wallet, visits and rewards in this app belong to customer accounts. Your account is set up to run a business on Reward Jar."}
           </p>
         </div>
 

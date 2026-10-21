@@ -56,15 +56,15 @@ export async function sendOtpSms(target: string, code: string): Promise<Delivery
 
 type Mail = { subject: string; text: string };
 
-const EMAIL_SUBJECT = "Your Perk Loop verification code";
+const EMAIL_SUBJECT = "Your Reward Jar verification code";
 
 function emailBody(code: string): string {
   return [
-    `Your Perk Loop verification code is: ${code}`,
+    `Your Reward Jar verification code is: ${code}`,
     "",
     "It expires in 10 minutes. If you did not request it, you can ignore this email.",
     "",
-    "— Perk Loop",
+    "— Reward Jar",
   ].join("\n");
 }
 
@@ -73,7 +73,7 @@ function otpMail(code: string): Mail {
 }
 
 async function sendViaResend(target: string, mail: Mail): Promise<void> {
-  const from = process.env.SMTP_FROM ?? "Perk Loop <onboarding@resend.dev>";
+  const from = process.env.SMTP_FROM ?? "Reward Jar <onboarding@resend.dev>";
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -171,7 +171,7 @@ async function sendViaSmtpEnv(target: string, mail: Mail): Promise<void> {
   const secure = port === 465;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM ?? user ?? "perkloop@localhost";
+  const from = process.env.SMTP_FROM ?? user ?? "hello@rewardjar.indevs.in";
 
   const socket: net.Socket = secure
     ? tls.connect({ host, port, servername: host })
@@ -182,7 +182,7 @@ async function sendViaSmtpEnv(target: string, mail: Mail): Promise<void> {
   try {
     await waitForConnected(socket, secure);
     await smtpCommand(conn, 220); // greeting
-    const ehlo = await smtpCommand(conn, 250, "EHLO perkloop.local");
+    const ehlo = await smtpCommand(conn, 250, "EHLO rewardjar.local");
 
     if (!secure && /[- ]STARTTLS/i.test(ehlo)) {
       await smtpCommand(conn, 220, "STARTTLS");
@@ -191,7 +191,7 @@ async function sendViaSmtpEnv(target: string, mail: Mail): Promise<void> {
       conn.buf = "";
       upgraded.setTimeout(15000);
       await waitForConnected(upgraded, true);
-      await smtpCommand(conn, 250, "EHLO perkloop.local");
+      await smtpCommand(conn, 250, "EHLO rewardjar.local");
     }
 
     if (user && pass) {
@@ -204,7 +204,7 @@ async function sendViaSmtpEnv(target: string, mail: Mail): Promise<void> {
     await smtpCommand(conn, 354, "DATA");
 
     const message = [
-      `From: Perk Loop <${from}>`,
+      `From: Reward Jar <${from}>`,
       `To: <${target}>`,
       `Subject: ${mail.subject}`,
       "MIME-Version: 1.0",
@@ -231,11 +231,11 @@ export type WelcomeInput = { to: string; role: "CUSTOMER" | "MERCHANT_OWNER" | "
 function welcomeMail(role: WelcomeInput["role"], handle: string): Mail {
   if (role === "MERCHANT_OWNER") {
     return {
-      subject: "Welcome to Perk Loop — your loyalty program awaits",
+      subject: "Welcome to Reward Jar — your loyalty program awaits",
       text: [
         `Hi ${handle},`,
         "",
-        "Your Perk Loop business account is ready.",
+        "Your Reward Jar business account is ready.",
         "",
         "From your dashboard you can:",
         "- Launch a punch-card or points program in minutes",
@@ -245,26 +245,26 @@ function welcomeMail(role: WelcomeInput["role"], handle: string): Mail {
         "",
         "Sign in, set up your program, and your customers start earning on their very next visit.",
         "",
-        "— Team Perk Loop",
+        "— Team Reward Jar",
         "Noida & Greater Noida",
       ].join("\n"),
     };
   }
   return {
-    subject: "Welcome to Perk Loop — your wallet is ready",
+    subject: "Welcome to Reward Jar — your wallet is ready",
     text: [
       `Hi ${handle},`,
       "",
-      "Welcome to Perk Loop — India-first loyalty for local shops.",
+      "Welcome to Reward Jar — India-first loyalty for local shops.",
       "",
       "Your wallet is ready:",
       "- Collect stamps and points at the cafés, salons and bakeries you already love",
       "- Every business keeps its own separate balance — nothing ever mixes",
       "- Rewards are confirmed by the shop, so every visit counts for real",
       "",
-      "Open Perk Loop, scan the counter QR on your next visit, and your first stamp is minutes away.",
+      "Open Reward Jar, scan the counter QR on your next visit, and your first stamp is minutes away.",
       "",
-      "— Team Perk Loop",
+      "— Team Reward Jar",
       "Noida & Greater Noida",
     ].join("\n"),
   };
@@ -301,7 +301,7 @@ async function sendViaTwilio(target: string, code: string): Promise<void> {
 
   const body = new URLSearchParams({
     To: to,
-    Body: `Your Perk Loop code is ${code}. It expires in 10 minutes. Never share this code.`,
+    Body: `Your Reward Jar code is ${code}. It expires in 10 minutes. Never share this code.`,
   });
   if (from) body.set("From", from);
   if (messagingServiceSid) body.set("MessagingServiceSid", messagingServiceSid);

@@ -29,10 +29,10 @@ async function seedBusiness() {
 
   const business = await db.business.create({
     data: {
-      name: "Perk Loop Demo Café",
+      name: "Reward Jar Demo Café",
       category: "CAFE",
       description:
-        "A demonstration café used to test Perk Loop end to end. Every number here is clearly labeled demo data.",
+        "A demonstration café used to test Reward Jar end to end. Every number here is clearly labeled demo data.",
       addressLine: "Sector 18, Near Metro Station",
       city: "Noida",
       state: "Uttar Pradesh",
@@ -179,7 +179,7 @@ async function seedDemoCustomer(businessId: string) {
         userId: cust.id,
         businessId,
         type: "REWARD_EARNED",
-        title: "Stamp earned at Perk Loop Demo Café",
+        title: "Stamp earned at Reward Jar Demo Café",
         body: "Your visit was recorded — 1 stamp added to your punch card.",
         createdAt: v.createdAt,
       },
