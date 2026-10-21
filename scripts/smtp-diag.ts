@@ -5,7 +5,8 @@ const HOST = "smtp-relay.brevo.com";
 const PORT = 587;
 const USER = process.env.SMTP_USER ?? "bf5863001@smtp-brevo.com";
 const PASS = process.env.SMTP_PASS ?? "";
-const FROM = "bhajaannn@gmail.com";
+const FROM = process.env.DIAG_FROM ?? "bhajaannn@gmail.com";
+const RCPT = process.env.DIAG_TO ?? "rewardjarsupport@gmail.com";
 
 type Conn = { sock: net.Socket; buf: string };
 
@@ -72,7 +73,7 @@ async function main() {
   await cmd(c, 250, "EHLO diag.local");
   await cmd(c, 235, `AUTH PLAIN ${Buffer.from(`\0${USER}\0${PASS}`).toString("base64")}`, true);
   await cmd(c, 250, `MAIL FROM:<${FROM}>`);
-  await cmd(c, 250, `RCPT TO:<${FROM}>`);
+  await cmd(c, 250, `RCPT TO:<${RCPT}>`);
   console.log(">>> ALL GOOD: auth + sender + recipient accepted by Brevo");
   await cmd(c, 221, "QUIT").catch(() => undefined);
   process.exit(0);
