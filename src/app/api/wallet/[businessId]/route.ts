@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ApiErr, handleRoute, requireCustomer } from "@/lib/auth-helpers";
-import { summarizeProgram } from "@/lib/loyalty";
+import { expireStaleRedemptions, summarizeProgram } from "@/lib/loyalty";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +33,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ busines
       orderBy: { createdAt: "asc" },
       include: { rewards: { where: { active: true }, orderBy: { cost: "asc" } } },
     });
+
+    // Review round 2: lapse stale pendings so an abandoned request stops
+    // blocking the reward buttons after 24h.
+    await expireStaleRedemptions(db, { customerId: user.id, businessId });
 
     const pendingRedemption = await db.redemption.findFirst({
       where: { customerId: user.id, businessId, status: "PENDING" },

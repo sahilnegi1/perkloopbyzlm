@@ -22,6 +22,40 @@ const STAMP_COOLDOWN_MS = 30 * 60 * 1000; // ≥30 min between stamp-bearing vis
 const TXN_MIN_THRESHOLD_PAISE = 10000; // ₹100 — min-1-point threshold
 const PENDING_REDEMPTION_TTL_MS = 24 * 60 * 60 * 1000; // stale pending requests stop blocking after 24h
 
+// ─── Redemption expiry (review round 2) ─────────────────────────────────────
+
+/**
+ * EXPLICIT expiry transition: PENDING redemptions older than 24h are flipped
+ * to EXPIRED by the routes that read/count them. An abandoned request can no
+ * longer keep blocking a customer's reward limit or the one-pending rule —
+ * previously the age check only bypassed the one-pending rule while the stale
+ * row still counted toward perCustomerLimit (review round 2, issue 4).
+ *
+ * Scoped to the rows the caller is about to read so the WHERE stays indexed.
+ * Safe to call inside a serializable transaction (plain updateMany).
+ */
+export async function expireStaleRedemptions(
+  client: Prisma.TransactionClient,
+  scope: { businessId?: string; businessIdIn?: string[]; customerId?: string } = {}
+): Promise<number> {
+  const res = await client.redemption.updateMany({
+    where: {
+      status: "PENDING",
+      createdAt: { lt: new Date(Date.now() - PENDING_REDEMPTION_TTL_MS) },
+      ...(scope.businessId ? { businessId: scope.businessId } : {}),
+      ...(scope.businessIdIn ? { businessId: { in: scope.businessIdIn } } : {}),
+      ...(scope.customerId ? { customerId: scope.customerId } : {}),
+    },
+    data: { status: "EXPIRED" },
+  });
+  return res.count;
+}
+
+/** True when a PENDING redemption has outlived the 24h decision window. */
+export function redemptionIsStale(createdAt: Date, now = new Date()): boolean {
+  return now.getTime() - createdAt.getTime() > PENDING_REDEMPTION_TTL_MS;
+}
+
 // ─── Serializable transaction helper (audit F02/F03) ─────────────────────────
 
 const isSqlite = (url: string | undefined): boolean =>
@@ -458,6 +492,11 @@ export async function createRedemption(input: {
   // of it now runs in ONE serializable transaction (with retry on conflicts).
   return dbTx(async (tx) => {
     const now = new Date();
+    // Review round 2: expire stale PENDING rows FIRST, inside the same
+    // transaction, so an abandoned request no longer counts toward the
+    // per-customer reward limit below.
+    await expireStaleRedemptions(tx, { customerId: input.customerId, businessId: input.businessId });
+
     const reward = await tx.reward.findFirst({
       where: { id: input.rewardId, businessId: input.businessId },
       include: { program: true },
@@ -482,8 +521,8 @@ export async function createRedemption(input: {
     }
 
     // One live PENDING redemption per customer per business. A pending request
-    // older than 24h stops blocking (audit F12: abandoned requests must not
-    // trap the customer) — merchants can still decide it from their queue.
+    // older than 24h has already been flipped to EXPIRED above, so it neither
+    // blocks nor counts (audit F12) — merchants can still see it in their queue.
     const pending = await tx.redemption.findFirst({
       where: {
         customerId: input.customerId,
@@ -576,6 +615,9 @@ export async function decideRedemption(input: {
   const actorType = input.memberRole === "STAFF" ? ("STAFF" as const) : ("MERCHANT" as const);
 
   if (input.decision === "REJECTED") {
+    // Review round 2: lapse stale pendings first so a merchant can't decide a
+    // request that already passed its 24h window.
+    await expireStaleRedemptions(db, { businessId: input.businessId });
     const res = await db.redemption.updateMany({
       where: { id: input.redemptionId, businessId: input.businessId, status: "PENDING" },
       data: { status: "REJECTED", decidedAt: now, decidedById: input.userId },
@@ -585,6 +627,9 @@ export async function decideRedemption(input: {
         where: { id: input.redemptionId, businessId: input.businessId },
       });
       if (!existing) throw new ApiErr(404, "Redemption not found for your business.");
+      if (existing.status === "EXPIRED") {
+        throw new ApiErr(409, "This request expired after 24 hours. Ask the customer to submit a new one.");
+      }
       throw new ApiErr(409, "This redemption was already decided.");
     }
     const final = await db.redemption.findUniqueOrThrow({
@@ -619,7 +664,19 @@ export async function decideRedemption(input: {
     });
     if (!redemption) throw new ApiErr(404, "Redemption not found for your business.");
     if (redemption.status !== "PENDING") {
+      if (redemption.status === "EXPIRED") {
+        throw new ApiErr(409, "This request expired after 24 hours. Ask the customer to submit a new one.");
+      }
       throw new ApiErr(409, "This redemption was already decided.");
+    }
+    if (redemptionIsStale(redemption.createdAt, now)) {
+      // Explicit transition inside the same transaction — an approval can no
+      // longer land on a request that quietly aged out of its 24h window.
+      await tx.redemption.updateMany({
+        where: { id: redemption.id, status: "PENDING" },
+        data: { status: "EXPIRED" },
+      });
+      throw new ApiErr(409, "This request expired after 24 hours. Ask the customer to submit a new one.");
     }
 
     const account = await tx.loyaltyAccount.findUnique({

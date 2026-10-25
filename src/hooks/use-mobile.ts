@@ -11,8 +11,13 @@ export function useIsMobile() {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     }
     mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
+    // Initial read deferred a tick — synchronous setState inside the effect
+    // body trips the react-hooks cascading-render rule.
+    const id = setTimeout(onChange, 0)
+    return () => {
+      clearTimeout(id)
+      mql.removeEventListener("change", onChange)
+    }
   }, [])
 
   return !!isMobile

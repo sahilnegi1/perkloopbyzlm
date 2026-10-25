@@ -227,7 +227,7 @@ model Redemption {
   rewardId    String
   businessId  String
   customerId  String
-  status      String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
+  status      String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED | EXPIRED (24h TTL sweep)
   cost        Int
   unit        String
   createdAt   DateTime  @default(now())
@@ -240,6 +240,19 @@ model Redemption {
 
   @@index([businessId, status])
   @@index([customerId])
+  @@index([status, createdAt])
+}
+
+// ─── Ops & bootstrap ─────────────────────────────────────────────────────────
+
+/**
+ * Key/value store for operational bootstrap state — mirrors the PostgreSQL
+ * schema. Used by the sandbox dev server only.
+ */
+model SystemConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 // ─── Feedback ────────────────────────────────────────────────────────────────

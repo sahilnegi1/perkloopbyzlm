@@ -94,6 +94,12 @@ export async function POST(req: NextRequest) {
 /**
  * PUT /api/merchant/program — update a program. Program type is immutable
  * (changing it would corrupt accrued stamps); config re-validated per type.
+ *
+ * Review round 2 (issue 3): the whole update now runs in ONE serializable
+ * transaction. Previously the activation path flipped the status inside a
+ * serializable tx but then wrote the remaining fields with a SECOND,
+ * non-serializable update — a second status update outside the guard that
+ * could interleave with a concurrent activation.
  */
 export async function PUT(req: NextRequest) {
   return handleRoute(async () => {
@@ -112,49 +118,41 @@ export async function PUT(req: NextRequest) {
       configJson = JSON.stringify(config);
     }
 
-    if (body.status === "ACTIVE" && existing.status !== "ACTIVE") {
-      // Audit F03: activation re-checks uniqueness inside a serializable tx.
-      await dbTx(async (tx) => {
-        await assertSingleActiveProgram(tx, existing.businessId, existing.type, existing.id);
-        const startsAt = body.startsAt ?? existing.startsAt;
-        const endsAt = body.endsAt ?? existing.endsAt;
-        if (startsAt && endsAt && startsAt > endsAt) {
-          throw new ApiErr(400, "Program start date must be before its end date.");
-        }
-        await tx.loyaltyProgram.update({
-          where: { id: existing.id },
-          data: { status: "ACTIVE" },
-        });
-      });
-    }
     const startsAt = body.startsAt ?? existing.startsAt;
     const endsAt = body.endsAt ?? existing.endsAt;
-    if (!(body.status === "ACTIVE" && existing.status !== "ACTIVE") && startsAt && endsAt && startsAt > endsAt) {
+    if (startsAt && endsAt && startsAt > endsAt) {
       throw new ApiErr(400, "Program start date must be before its end date.");
     }
 
-    const program = await db.loyaltyProgram.update({
-      where: { id: existing.id },
-      data: {
-        ...(body.name !== undefined ? { name: body.name } : {}),
-        ...(configJson !== undefined ? { config: configJson } : {}),
-        ...(body.terms !== undefined ? { terms: body.terms } : {}),
-        ...(body.status !== undefined ? { status: body.status } : {}),
-        ...(body.startsAt !== undefined ? { startsAt: body.startsAt } : {}),
-        ...(body.endsAt !== undefined ? { endsAt: body.endsAt } : {}),
-        ...(body.perCustomerLimit !== undefined ? { perCustomerLimit: body.perCustomerLimit } : {}),
-        ...(body.minSpendPaise !== undefined ? { minSpendPaise: body.minSpendPaise } : {}),
-      },
-    });
-
-    await audit(db, {
-      actorType: membership.role === "STAFF" ? "STAFF" : "MERCHANT",
-      actorId: membership.userId,
-      businessId: existing.businessId,
-      action: "PROGRAM_UPDATED",
-      entity: "LoyaltyProgram",
-      entityId: program.id,
-      meta: { name: program.name, type: program.type, status: program.status },
+    const program = await dbTx(async (tx) => {
+      if (body.status === "ACTIVE" && existing.status !== "ACTIVE") {
+        // Audit F03: activation re-checks uniqueness in the same serializable
+        // transaction as the write itself.
+        await assertSingleActiveProgram(tx, existing.businessId, existing.type, existing.id);
+      }
+      const updated = await tx.loyaltyProgram.update({
+        where: { id: existing.id },
+        data: {
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(configJson !== undefined ? { config: configJson } : {}),
+          ...(body.terms !== undefined ? { terms: body.terms } : {}),
+          ...(body.status !== undefined ? { status: body.status } : {}),
+          ...(body.startsAt !== undefined ? { startsAt: body.startsAt } : {}),
+          ...(body.endsAt !== undefined ? { endsAt: body.endsAt } : {}),
+          ...(body.perCustomerLimit !== undefined ? { perCustomerLimit: body.perCustomerLimit } : {}),
+          ...(body.minSpendPaise !== undefined ? { minSpendPaise: body.minSpendPaise } : {}),
+        },
+      });
+      await audit(tx, {
+        actorType: membership.role === "STAFF" ? "STAFF" : "MERCHANT",
+        actorId: membership.userId,
+        businessId: existing.businessId,
+        action: "PROGRAM_UPDATED",
+        entity: "LoyaltyProgram",
+        entityId: updated.id,
+        meta: { name: updated.name, type: updated.type, status: updated.status },
+      });
+      return updated;
     });
 
     return NextResponse.json({ program: summarizeProgram(program) });

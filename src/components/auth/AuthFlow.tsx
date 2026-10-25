@@ -223,9 +223,13 @@ export function AuthFlow({
     }
   };
 
-  // Auto-verify once all six digits are in.
+  // Auto-verify once all six digits are in. Deferred a tick so the verify
+  // setState doesn't run synchronously inside the effect (react-hooks rule).
   useEffect(() => {
-    if (code.length === 6 && !verifying) void verify(code);
+    if (code.length === 6 && !verifying) {
+      const t = setTimeout(() => void verify(code), 0);
+      return () => clearTimeout(t);
+    }
   }, [code]);
 
   const switchToRegister = () => {

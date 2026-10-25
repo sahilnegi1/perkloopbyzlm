@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { handleRoute, maskPhone, requireMerchant } from "@/lib/auth-helpers";
 import { merchantRedemptionsQuerySchema, parseQuery } from "@/lib/validation";
+import { expireStaleRedemptions } from "@/lib/loyalty";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,9 @@ export async function GET(req: NextRequest) {
 
     const memberships = await db.businessMember.findMany({ where: { userId: user.id } });
     const businessIds = memberships.map((m) => m.businessId);
+
+    // Review round 2: lapse stale pendings so the queue shows the truth.
+    await expireStaleRedemptions(db, { businessIdIn: businessIds });
 
     const redemptions = await db.redemption.findMany({
       where: {

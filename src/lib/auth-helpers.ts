@@ -6,15 +6,9 @@ import { errorResponse } from "@/lib/rate-limit";
 
 // ─── Error type ───────────────────────────────────────────────────────────────
 
-/** Thrown anywhere inside a route handler; `handleRoute` converts it to JSON. */
-export class ApiErr extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-    this.name = "ApiErr";
-  }
-}
+/** Canonical API error lives in its own cycle-free module; re-exported here. */
+export { ApiErr } from "@/lib/api-error";
+import { ApiErr } from "@/lib/api-error";
 
 /** Prisma client or an interactive-transaction client — both share delegate APIs. */
 export type DbClient = PrismaClient | Prisma.TransactionClient;

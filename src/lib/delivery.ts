@@ -16,10 +16,8 @@ export type DeliveryResult =
 
 // ─── Config detection ─────────────────────────────────────────────────────────
 
-/** Production = deployed environment (Vercel or NODE_ENV=production). */
-export function isProduction(): boolean {
-  return process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
-}
+export { isProduction } from "@/lib/env";
+import { isProduction } from "@/lib/env";
 
 export function emailProviderConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY || process.env.SMTP_HOST);

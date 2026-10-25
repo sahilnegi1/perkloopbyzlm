@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { handleRoute, requireCustomer } from "@/lib/auth-helpers";
+import { expireStaleRedemptions } from "@/lib/loyalty";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   return handleRoute(async () => {
     const user = await requireCustomer();
+
+    // Review round 2: lapse stale pendings so history reflects reality.
+    await expireStaleRedemptions(db, { customerId: user.id });
 
     const redemptions = await db.redemption.findMany({
       where: { customerId: user.id },

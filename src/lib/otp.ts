@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { ApiErr } from "@/lib/auth-helpers";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendOtpEmail, sendOtpSms } from "@/lib/delivery";
+import { isProduction } from "@/lib/env";
+import { getOrCreateSystemSecret } from "@/lib/system-secret";
 
 /**
  * OTP lifecycle. Security contract (docs/API.md + security spec):
@@ -15,10 +17,38 @@ import { sendOtpEmail, sendOtpSms } from "@/lib/delivery";
 const OTP_TTL_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN_MS = 60 * 1000;
-const OTP_SALT = process.env.OTP_SALT ?? "reward-jar-otp-salt-v1";
+const DEV_OTP_SALT = "reward-jar-otp-salt-v1";
 
-function hashCode(code: string, target: string): string {
-  return crypto.createHash("sha256").update(`${code}${target}${OTP_SALT}`).digest("hex");
+let saltCache: string | null = null;
+
+/**
+ * Audit F01 follow-up: the OTP salt must not be a source-embedded constant on
+ * a deployed host. Environment value wins; production without one bootstraps
+ * a random persisted salt (rotating it only invalidates outstanding 10-minute
+ * codes); dev keeps the constant so the sandbox needs no DB round-trip.
+ */
+async function otpSalt(): Promise<string> {
+  if (saltCache) return saltCache;
+  const envSalt = process.env.OTP_SALT?.trim();
+  if (envSalt && envSalt.length >= 16) {
+    saltCache = envSalt;
+    return saltCache;
+  }
+  if (!isProduction()) {
+    saltCache = envSalt ?? DEV_OTP_SALT;
+    return saltCache;
+  }
+  saltCache = await getOrCreateSystemSecret("otp_salt");
+  console.error(
+    "[security] OTP_SALT is not configured in production — bootstrapped a random " +
+      "persisted salt. Set OTP_SALT in the deployment environment to take precedence."
+  );
+  return saltCache;
+}
+
+async function hashCode(code: string, target: string): Promise<string> {
+  const salt = await otpSalt();
+  return crypto.createHash("sha256").update(`${code}${target}${salt}`).digest("hex");
 }
 
 function newCode(): string {
@@ -57,11 +87,12 @@ export async function requestOtp(input: {
   }
 
   const code = newCode();
+  const codeHash = await hashCode(code, target);
   await db.otpCode.create({
     data: {
       target,
       channel,
-      codeHash: hashCode(code, target),
+      codeHash,
       expiresAt: new Date(Date.now() + OTP_TTL_MS),
     },
   });
@@ -95,7 +126,7 @@ export async function verifyOtp(input: {
   if (row.expiresAt.getTime() <= Date.now()) {
     throw new ApiErr(400, "This code has expired. Request a new one.");
   }
-  if (row.codeHash !== hashCode(code, target)) {
+  if (row.codeHash !== (await hashCode(code, target))) {
     await db.otpCode.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
     throw new ApiErr(400, "Incorrect code. Please try again.");
   }

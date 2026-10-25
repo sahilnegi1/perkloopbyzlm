@@ -90,16 +90,21 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api || !setApi) return
-    setApi(api)
+    // Deferred a tick — lifting the embla API to the parent must not call
+    // parent setState synchronously inside the effect (react-hooks rule).
+    const id = setTimeout(() => setApi(api), 0)
+    return () => clearTimeout(id)
   }, [api, setApi])
 
   React.useEffect(() => {
     if (!api) return
-    onSelect(api)
+    // Initial sync deferred a tick (same rationale as the setApi effect above).
+    const id = setTimeout(() => onSelect(api), 0)
     api.on("reInit", onSelect)
     api.on("select", onSelect)
 
     return () => {
+      clearTimeout(id)
       api?.off("select", onSelect)
     }
   }, [api, onSelect])
