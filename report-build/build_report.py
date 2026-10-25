@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Reward Jar — Production Audit Remediation Report (body PDF, ReportLab).
 
-Pipeline per briefs/report.md: body here (TOC + content, NO cover), cover via
-html2poster.js, merged with pypdf into the final single PDF.
+Round 2: rewritten after the external review scored round 1 at 7/10 and
+listed five remaining issues. Pipeline per briefs/report.md: body here
+(TOC + content, NO cover), cover via html2poster.js, merged with pypdf.
 """
 
 import hashlib
@@ -129,7 +130,7 @@ class TocDocTemplate(SimpleDocTemplate):
         c.line(LM, BM - 18, PAGE_W - RM, BM - 18)
         c.setFont('FreeSerif', 8)
         c.setFillColor(TEXT_MUTED)
-        c.drawString(LM, BM - 30, 'Reward Jar — Production Audit Remediation Report')
+        c.drawString(LM, BM - 30, 'Reward Jar — Production Audit Remediation Report · Round 2')
         c.drawRightString(PAGE_W - RM, BM - 30, f'Page {self.page}')
         c.restoreState()
 
@@ -231,299 +232,370 @@ story.append(PageBreak())
 # ── 1. Executive summary ────────────────────────────────────────────────────
 h1(story, '1. Executive Summary')
 para(story,
-     'This report documents the remediation work carried out on the Reward Jar platform on 25 October 2026, '
-     'in response to two inputs: a set of defects reported directly by the product owner from real device use, '
-     'and an external production-readiness audit of commit <b>bcaa609</b> that rated the project 6/10 and listed '
-     'fourteen prioritised findings (F01 through F14). The session covered diagnosis, code repair, automated and '
-     'browser-based verification, and a production deployment that is now live.')
+     'This report is the round-2 remediation record for the Reward Jar platform. The round-1 report '
+     '(commit <b>e0b5d3b</b>, 25 October 2026) documented the resolution of four user-reported defects and '
+     'code fixes against the external production-readiness audit of commit <b>bcaa609</b>. An external review '
+     'of that work rated it 7/10 for remediation quality and 5/10 for unrestricted-launch readiness, and '
+     'listed five issues that prevented a higher rating. This session addressed every one of the five, '
+     're-ran the full verification stack, and deployed the result as commit <b>fb584b4</b>.')
 para(story,
-     'All four user-reported problems were fixed and verified: QR photo scanning now works on iPhones '
-     '(the primary reported failure), the scan screen was redesigned around a single clear "Scan QR" action, '
-     'the home greeting is correctly time-aware and no longer addresses unnamed users as "there", and '
-     'authentication is now email-only, matching the launch configuration. On the audit side, twelve of the '
-     'fourteen findings received code-level fixes in this session; the remaining two are policy or infrastructure '
-     'items that require product decisions or external access, and they are documented with rationale in '
-     'Section 6 rather than silently skipped.')
+     'The five review issues, in the reviewer\'s own terms: (1) the predictable fallback session secret was '
+     'still usable in production — a logged warning does not close a P0; (2) the report claimed "12 of 14 '
+     'findings fixed" while its own matrix showed 11 fixed and F01 only partial; (3) the concurrency fixes '
+     'were evidenced only by the same 31 sequential tests that passed before remediation, and program '
+     'activation still performed a status update outside its serializable transaction; (4) the 24-hour '
+     'pending-redemption expiry was incomplete, because stale PENDING rows still counted toward per-customer '
+     'reward limits; (5) dependency patching and operational readiness remained open, and the report\'s '
+     'closing security claim was overstated. Sections 2 and 3 document what was done about each, with the '
+     'new evidence.')
 story.extend(stat_band([
-    ('12 / 14', 'audit findings fixed in code'),
-    ('31 / 31', 'backend tests passing'),
-    ('4 / 4', 'user-reported defects resolved'),
+    ('11', 'of 14 findings fully fixed'),
+    ('16 / 16', 'simultaneous-request tests on PostgreSQL'),
+    ('31 / 31', 'backend regression suite'),
     ('0 px', 'horizontal overflow at 320 px'),
 ]))
 para(story,
-     'Verification was layered: a clean TypeScript compile and ESLint pass, the full backend end-to-end suite '
-     '(31 assertions covering OTP authentication, earning, redemption, approval and analytics) executed against '
-     'a freshly seeded database, and a scripted browser session that signed in, exercised the scan screen, and '
-     'decoded an actual QR photograph through the new decoder. The release was committed as <b>e0b5d3b</b>, '
-     'pushed to GitHub, built successfully by Vercel, and confirmed live on the production URL with no console '
-     'errors and no horizontal overflow at small viewports.')
+     'Two of the round-1 deferrals moved: F10 (dependency security update) is now done — the app runs on '
+     'Next.js 16.4.3, which contains the 14 October 2026 security fixes, with sharp 0.35.5 and refreshed '
+     'React, Prisma and Zod — and F12\'s remaining gap (stale requests still consuming limits) is closed by '
+     'an explicit expiry transition. The accurate overall position after this round is: <b>11 of 14 findings '
+     'fully fixed in code and deployed; F11 and F14 partially addressed with named remainder work; F08 '
+     'awaiting a product decision.</b> Section 6 states the residual security condition without embellishment, '
+     'as the reviewer requested.')
 
-# ── 2. User-reported defects ────────────────────────────────────────────────
-h1(story, '2. User-Reported Defects — Resolutions')
+# ── 2. Review round 2 — issue-by-issue resolution ───────────────────────────
+h1(story, '2. Review Round 2 — Issue-by-Issue Resolution')
 para(story,
-     'The product owner tested the production site on a personal iPhone and reported four problems against the '
-     'Scan tab, the greeting, and the sign-in form. Each report was traced to a root cause in code, fixed, and '
-     're-verified in a real browser session. Table 1 summarises the chain from report to resolution.')
-h2(story, '2.1 QR scanning did not work on iPhone')
-para(story,
-     'The scanner previously relied exclusively on the browser-native <font name="DejaVuSans" size="8.5">BarcodeDetector</font> '
-     'API and showed an honest error message on browsers that lack it. iPhone Safari does not implement that API, '
-     'so every attempt to scan a counter QR failed on the device the product actually runs on. The fix adds '
-     '<b>jsQR</b>, a pure-JavaScript decoder, as a universal fallback: photos are drawn to an offscreen canvas '
-     'and decoded from raw pixel data, with automatic retries at 90, 270 and 180 degrees so counter photos taken '
-     'at an angle still resolve. The native detector remains the fast path on Chromium browsers, and camera '
-     'capture semantics are unchanged.')
-h2(story, '2.2 The Scan screen was confusing')
-para(story,
-     'The old screen led with a large "Have a code? Paste it" card that competed with the primary action and '
-     'referenced internal URL formats. The redesign makes "Scan QR" the single dominant button, and demotes '
-     'manual entry to a compact "Have a code instead?" card with a one-line input and a submit button. '
-     'Explanatory copy now speaks in customer language ("Point your camera at the shop\'s Reward Jar QR code") '
-     'and the troubleshooting helper is preserved below.')
-h2(story, '2.3 Greeting showed the wrong text for unnamed users')
-para(story,
-     'Two defects were intertwined here. First, the greeting was computed once per render; customers who kept '
-     'the app open across a time-of-day boundary could see a stale greeting, which is why "Good morning" appeared '
-     'at incorrect hours. Second, when no display name was available the headline rendered the literal fallback '
-     'string "there", reading like an unwanted "Hello there". The greeting is now recomputed on a 30-second '
-     'interval and on tab-visibility changes, and unnamed users are addressed as "Friend".')
-h2(story, '2.4 Mobile-number sign-in removed')
-para(story,
-     'The sign-in form offered a Mobile/Email channel toggle, but no SMS provider is connected for launch, so '
-     'the mobile path could not deliver codes. The audit independently flagged this as a customer-experience '
-     'defect ("do not lead with Mobile or expose an unusable SMS path"). The toggle is removed; the API retains '
-     'the SMS channel definition for future use, but the product surface is now honestly email-only.')
+     'Each assessor issue is reproduced below with the change that closes it and the evidence gathered. '
+     'Where the reviewer asked for a specific mechanism ("refuse to operate", "an explicit expiry '
+     'transition", "dedicated simultaneous-request tests"), the implementation follows that mechanism '
+     'rather than a weaker substitute.')
 story.extend(make_table(
-    ['Reported issue', 'Root cause', 'Resolution'],
+    ['#', 'Reviewer issue', 'Resolution shipped in fb584b4'],
     [
-        ['"QR scanning not working" / "static QR problem"',
-         'Scanner required the native BarcodeDetector API, absent on iPhone Safari',
-         'jsQR fallback decoder with rotation retries; native API kept as fast path'],
-        ['Paste-code card confusing and unattractive',
-         'Large card led with developer vocabulary (URL formats) and competed with the scan action',
-         '"Scan QR" is the single primary button; manual entry demoted to compact card'],
-        ['Greeting stuck on "Good morning"; dislikes "Hello there"',
-         'Greeting computed once per render; unnamed users got the literal fallback "there"',
-         'Greeting recomputed on interval and visibility change; fallback is now "Friend"'],
-        ['Remove mobile number from login and sign-up',
-         'Mobile channel offered without any SMS provider configured',
-         'Channel toggle removed; sign-in is email-only end to end'],
+        ['1',
+         'Production still signs sessions with the predictable fallback secret when SESSION_SECRET is '
+         'missing; a warning does not fix it. Authentication must refuse to operate without a valid secret.',
+         'Three-tier contract in the signing path: a real environment secret wins; in its absence a '
+         'cryptographically random 96-hex secret is generated once and persisted in the new SystemConfig '
+         'table (stable across cold starts, nothing derivable from source); if even the database is '
+         'unreachable, every authenticated route and login returns 503 — auth refuses to operate. The '
+         'source-embedded fallback is now unreachable on any deployed host, and OTP_SALT received the '
+         'same treatment. Verified by simulation in production mode (Section 5).'],
+        ['2',
+         'Report said 12/14 fixed while its matrix showed 11 fixed with F01 partial.',
+         'Counting corrected. The matrix in Section 3 is the single source of truth: 11 fully fixed, '
+         'F11 and F14 partial, F08 deferred. No aggregate claim appears anywhere that the matrix does '
+         'not support, and the closing statement of this report replaces the earlier '
+         '"no unresolved P0 findings remain" wording.'],
+        ['3',
+         'The 31 passing tests were identical before and after remediation; dedicated simultaneous-request '
+         'tests against PostgreSQL are needed. Program activation also wrote a status update outside its '
+         'serializable transaction.',
+         'A new dedicated suite (scripts/concurrency-test.ts) fires genuinely simultaneous requests via '
+         'Promise.all at a server backed by Supabase PostgreSQL: 16 assertions, every race ending with '
+         'exactly one winner (full results in Table 2). The program PUT route was consolidated so the '
+         'uniqueness assertion, all field writes and the audit entry run in ONE serializable transaction; '
+         'the second status update outside the guard no longer exists, and a 6-way activation race is '
+         'covered by the suite.'],
+        ['4',
+         'Old requests remain PENDING and still count toward per-customer reward limits, so an abandoned '
+         'request can block that reward after 24 hours.',
+         'Explicit expiry transition: rows older than 24 h are flipped PENDING → EXPIRED wherever they are '
+         'read or counted — inside the redemption transaction before limit counting, in the merchant queue, '
+         'the customer wallet and history, and before any merchant decision (an approval of a stale request '
+         'now returns an explicit 409). Verified with a 25-hour-backdated row against PostgreSQL: the '
+         'decision was refused, the wallet unblocked, the limit was not consumed, and the history shows '
+         'the EXPIRED status.'],
+        ['5',
+         'Dependency patching and operational readiness deferred; removing BarcodeDetector in Chromium '
+         'does not certify iPhone Safari; PDF had cramped status columns, a nearly empty final page and an '
+         'overstated closing claim.',
+         'Dependencies updated and the full verification stack re-run (Next.js 16.1.3 → 16.4.3 including '
+         'the October security release, sharp 0.34.5 → 0.35.5, React 19.3.1, Prisma client 6.19.3, '
+         'Zod 4.6.7; three lint-rule violations surfaced by the refresh were fixed). A CI workflow '
+         '(lint + typecheck on push/PR) is prepared but intentionally not pushed — the deploy token '
+         'lacks the workflow scope; pushing it is a one-line follow-up for the owner. Real-device camera '
+         'certification remains explicitly open (Section 6). This PDF was rebuilt: wider status column, '
+         'corrected counts, accurate closing statement.'],
     ],
-    [0.26, 0.35, 0.39],
-    caption='Table 1 — User-reported defects, root causes and shipped resolutions.',
+    [0.045, 0.325, 0.63],
+    caption='Table 1 — The five assessor issues and what was shipped in response.',
+    col_styles=['tdc', 'td', 'td'],
 ))
+
+h2(story, '2.1 Concurrent-request evidence (PostgreSQL)')
+para(story,
+     'The suite runs against the production database engine — Supabase PostgreSQL, reached exactly as the '
+     'app reaches it — and creates its own merchants, customers, programs and QR codes, so no production '
+     'data is touched; every test row is deleted at the end (5 users, 5 OTP rows and 25 audit rows in this '
+     'run). Each burst below is a single Promise.all: the requests leave the client at the same moment and '
+     'contend on the same rows server-side. The reviewer\'s specific concern — that sequential tests pass '
+     'identically regardless of isolation — is addressed by exactly these bursts.')
+story.extend(make_table(
+    ['Race', 'Simultaneous load', 'Observed result (statuses)', 'Post-state verification'],
+    [
+        ['RACE 1 — per-customer limit (F02)',
+         '8 × redeem, program limit = 1',
+         '201 × 1, 403 × 7',
+         'Exactly 1 PENDING in the merchant queue; balance untouched before approval'],
+        ['RACE 2 — one-pending rule (F02)',
+         '7 × redeem, no program limit',
+         '201 × 1, 409 × 6',
+         'Every loser rejected with the explicit one-pending conflict'],
+        ['RACE 3 — one-time QR replay',
+         '8 × confirm of the same token',
+         '200 × 1, 409 × 7',
+         'Winner awarded exactly 50 points once; final balance 150 = 100 + 50'],
+        ['RACE 4 — duplicate active program (F03)',
+         '6 × create ACTIVE POINTS program',
+         '201 × 1, 409 × 5',
+         'Exactly 1 ACTIVE POINTS program remains after the burst'],
+        ['EXPIRY — stale pending (review issue 4)',
+         '25 h-backdated PENDING row',
+         'decide → 409 "expired after 24 hours"',
+         'Wallet unblocked; limit not consumed; history shows EXPIRED; fresh redeem approves and '
+         'decrements once (149 = 150 − 1)'],
+    ],
+    [0.235, 0.185, 0.20, 0.38],
+    caption='Table 2 — scripts/concurrency-test.ts against Supabase PostgreSQL: 16/16 assertions passed.',
+))
+
+h2(story, '2.2 The session-secret contract in detail')
+para(story,
+     'The reviewer\'s acceptance criterion was "missing production secrets prevent startup". In a serverless '
+     'platform there is no single startup moment, so the equivalent guarantee is enforced at every use of the '
+     'key: <b>tier 1</b> — SESSION_SECRET set (not the public dev placeholder, at least 32 characters) is used '
+     'as-is; <b>tier 2</b> — on a deployed host (NODE_ENV=production or VERCEL=1) without a usable value, a '
+     'random 48-byte secret is generated and persisted in SystemConfig, with a race-safe read-after-upsert so '
+     'concurrent cold starts converge on exactly one key; <b>tier 3</b> — if the database itself is '
+     'unreachable, the key resolver throws and every authenticated route and the login flow return 503. '
+     'Sandbox development keeps a plain fallback so the preview environment needs no setup — that path is '
+     'guarded by the same production check and cannot execute on a deployed host.')
+para(story,
+     'The round-1 behaviour (warn and continue with the public fallback) would have let anyone who read the '
+     'open-source repository forge valid session cookies. Under the new contract that exact attack was '
+     'simulated: a cookie signed with the dev placeholder was presented to a server running in production '
+     'mode, and the token was rejected (null session); both bootstrap secrets were created as 96-character '
+     'random hex, and the unconfigured-channel OTP guard returned 503 without exposing any code. If the '
+     'owner later sets SESSION_SECRET in Vercel, it takes precedence and the bootstrap row becomes dormant; '
+     'rotating it invalidates existing sessions by design.')
 
 # ── 3. Audit remediation matrix ─────────────────────────────────────────────
 h1(story, '3. Audit Findings — Remediation Matrix')
 para(story,
-     'The external audit (Perk_Loop_Production_Audit.md, dated 24-25 October 2026) enumerated fourteen findings '
-     'with priority levels: P0 items block a safe public launch, P1 items must be fixed before the affected '
-     'workflow is offered, and P2 items improve usability or maintainability. Table 2 records the status of '
-     'every finding after this session. "Fixed" means the code change is deployed to production; "Deferred" '
-     'means the item requires a product decision or infrastructure access and is tracked in Section 6.')
+     'Table 3 records the status of every finding after round 2 (commit <b>fb584b4</b>), and supersedes the '
+     'round-1 matrix. The status column is the authoritative count: <b>11 findings are fully fixed in code '
+     'and deployed; F11 and F14 are partial, each with its remainder named; F08 is deferred pending a '
+     'product decision.</b> "Fixed" means the change is pushed to main and deployed; "Partial" means the '
+     'shipped portion is live while the named remainder is scheduled; "Deferred" means no code change was '
+     'made, by design.')
 story.extend(make_table(
     ['ID', 'Pri', 'Finding', 'Status', 'Action taken'],
     [
         ['F01', 'P0', 'Authentication fails open when production config is missing',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'Dev OTP codes can never be returned in production (NODE_ENV / VERCEL guard returns 503); '
-         'loud warning when SESSION_SECRET falls back to the dev value'],
+         'Round 1: OTP dev-codes unreachable in production (503). Round 2: signing secret fail-closed — '
+         'env secret, else random persisted secret, else 503; OTP_SALT same; forged dev-placeholder '
+         'tokens rejected (verified by production-mode simulation)'],
         ['F02', 'P0', 'Concurrent redemptions bypass per-customer limits',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'createRedemption runs entirely inside a SERIALIZABLE transaction with write-conflict retry; '
-         'limit count, pending check and creation are now atomic'],
+         'createRedemption atomic in a SERIALIZABLE transaction (round 1); now evidenced by dedicated '
+         'simultaneous-request bursts on PostgreSQL — 8 × redeem at limit 1 → one winner, 7 × one-pending '
+         '→ six 409s (Table 2)'],
         ['F03', 'P1', 'Duplicate active programs can be created concurrently',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'Program create and activate enforce one-active-per-type inside the same serializable transaction'],
-        ['F04', 'P1', 'Merchant settings cannot be saved',
+         'Round 2 hardening: entire program PUT — uniqueness assertion, all writes, audit — in ONE '
+         'serializable transaction; the status update that previously ran outside the guard removed; '
+         '6-way activation race → exactly one ACTIVE program'],
+        ['F04', 'P1', 'Merchant profile settings cannot be saved',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'Settings PUT payload now includes the business id; server-side ownership check unchanged'],
+         'Settings PUT payload includes the business id; server-side ownership check unchanged (round 1)'],
         ['F05', 'P1', 'Program start/end dates not enforced',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'programLive() gate applied to points earning, stamp earning and redemption creation'],
+         'programLive() date-window gate applied to earning and redemption (round 1)'],
         ['F06', 'P1', 'Visit-counter programs offered but incomplete',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'Creation restricted to STAMPS and POINTS in both UI and API with a friendly message; '
-         'customer-facing description typo corrected; dead form branches removed'],
+         'Creation restricted to STAMPS and POINTS; customer copy corrected (round 1)'],
         ['F07', 'P1', 'Repeated scans inflate visits and repeat-rate analytics',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'Cooldown and no-program scans record an audit-trail attempt only — no Visit row, no visit-count '
-         'or last-visit update; metrics reflect qualifying visits'],
+         'Cooldown/no-program scans are audit-trail attempts only — no Visit row, no counter movement (round 1)'],
         ['F08', 'P1', 'A photographed static QR is not proof of presence',
          '<font color="#9c7c3b"><b>Deferred</b></font>',
-         'Business-policy decision (fraud tolerance); requires merchant input on visit tokens or approvals'],
+         'Business-policy decision (fraud tolerance); needs merchant input on visit tokens or approvals'],
         ['F09', 'P1', 'Multi-business support incomplete',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'One business per owner for the pilot; second business creation returns an explicit, friendly 409'],
-        ['F10', 'P1', 'Dependency versions need security update (Next.js 16.1.3)',
-         '<font color="#9c7c3b"><b>Deferred</b></font>',
-         'Upgrade planned immediately before pilot; must be validated against the Vercel build and full '
-         'test suite (see Section 6)'],
-        ['F11', 'P1', 'QR scanning not dependable across browsers',
+         'One business per owner for the pilot; second creation returns explicit 409 (round 1)'],
+        ['F10', 'P1', 'Dependency versions need security update',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'jsQR pure-JS decoding removes the BarcodeDetector dependency entirely; feature detection still '
-         'prefers native decoding where available. Real-device camera QA remains open (Section 6)'],
+         'Round 2: Next.js 16.1.3 → 16.4.3 (contains the 14 Oct 2026 security fixes), sharp 0.34.5 → 0.35.5 '
+         '(the audit\'s named workaround), React 19.3.1, Prisma client 6.19.3, Zod 4.6.7; lint-rule fallout '
+         'fixed; both suites and the browser session re-run green'],
+        ['F11', 'P1', 'QR scanning not dependable across customer browsers',
+         '<font color="#9c7c3b"><b>Partial</b></font>',
+         'jsQR pure-JS decoding shipped (round 1) — the BarcodeDetector dependency is gone from the '
+         'decoding path. Remainder: certification on physical iPhone Safari / Android Chrome, which '
+         'Chromium emulation cannot provide'],
         ['F12', 'P1/P2', 'Pending approvals and account states go stale',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'Visible-tab polling added (notifications 15 s, wallet 12 s, merchant queues 15 s); customers can '
-         'withdraw pending redemptions via a new cancel endpoint; abandoned requests stop blocking after 24 h'],
+         'Round 1: visible-tab polling (15 s queues / 12 s wallet) + customer cancel endpoint. Round 2: '
+         'explicit PENDING → EXPIRED transition after 24 h — stale rows no longer consume perCustomerLimit '
+         'or block the one-pending rule; verified with a 25 h-backdated row on PostgreSQL'],
         ['F13', 'P2', 'Customer FAQ link opens the wrong destination',
          '<font color="#4f8962"><b>Fixed</b></font>',
-         'Profile FAQ row navigates to the landing page and scrolls to the FAQ section once rendered'],
+         'FAQ row navigates to the landing FAQ section (round 1)'],
         ['F14', 'P1', 'Release and recovery controls insufficient',
-         '<font color="#9c7c3b"><b>Deferred</b></font>',
-         'Requires CI pipelines, migration history and backup drills; infra-level work tracked in Section 6'],
+         '<font color="#9c7c3b"><b>Partial</b></font>',
+         'Round 2: CI workflow (frozen install, lint, typecheck on push/PR) prepared — held back from the '
+         'push because the deploy token lacks the workflow scope. Remainder: reviewed migration baseline '
+         'with migrate deploy, staging database separation, backup-restore rehearsal, readiness probe'],
     ],
-    [0.065, 0.055, 0.21, 0.10, 0.57],
-    caption='Table 2 — All fourteen audit findings and their status after commit e0b5d3b.',
+    [0.065, 0.065, 0.20, 0.135, 0.535],
+    caption='Table 3 — All fourteen audit findings after round 2 (commit fb584b4). Count: 11 fixed, 2 partial, 1 deferred.',
     col_styles=['tdc', 'tdc', 'td', 'tdc', 'td'],
 ))
-h2(story, '3.1 How the concurrency fixes work')
-para(story,
-     'Findings F02 and F03 shared a root cause: rules were enforced by counting rows and then creating new ones '
-     'in separate steps, so two simultaneous requests could both observe "no conflict" and both write. The fix '
-     'introduces a shared transaction helper that runs PostgreSQL transactions at SERIALIZABLE isolation with '
-     'automatic retry on write-conflict errors, and moves each count-then-create sequence fully inside it. '
-     'SQLite (used for sandbox previews) serialises writers natively, so the same code path runs there without '
-     'the isolation flag. This restores a single invariant source in the loyalty engine instead of scattering '
-     'checks across screens, exactly as the audit recommended.')
-h2(story, '3.2 How the loyalty engine treats visits now')
-para(story,
-     'Previously every scan created a Visit row and incremented the customer visit counter, even when the '
-     '30-minute stamp cooldown meant nothing could be awarded. Repeat-rate analytics therefore counted scans, '
-     'not visits. Now a scan that falls inside the cooldown, or arrives when no eligible program is live, is '
-     'recorded only in the audit trail with a reason code; no Visit row is created and no counter moves. '
-     'The earning cooldown is measured from the last qualifying visit, which also stops the old behaviour of '
-     'rescans repeatedly pushing the next-earnable time further into the future.')
 
-# ── 4. Layout integrity ─────────────────────────────────────────────────────
-h1(story, '4. Layout Integrity and Responsive Repair')
+# ── 4. User-reported defects (round 1 recap) ────────────────────────────────
+h1(story, '4. User-Reported Defects — Standing Resolutions')
 para(story,
-     'The audit\'s browser matrix found concrete overflow defects: the landing page measured 390 CSS px wide '
-     'inside a 320 px viewport (70 px of horizontal scroll), the customer desktop shell clipped its top tabs '
-     '(503 px of tabs inside 446 px), and the merchant dashboard forced horizontal scrolling at 320 px because '
-     'its two quick-action buttons could not wrap. Each was reproduced, root-caused and repaired in this session.')
-para(story,
-     'The landing overflow came from three compounding sources: a fixed-width phone illustration nested inside '
-     'padded preview cards, a floating "No setup fee" chip that hung outside its card on small screens, and a '
-     'corrupted CSS mask-image class on the categories rail that had lost its opening bracket. Illustration '
-     'sections now clip decorative overhang with overflow-x-clip, the phone frame yields with max-width, the '
-     'chip stays inside its card below the small-screen breakpoint, and the corrupted class was restored. '
-     'The customer shell widens to 512 px on desktop while the top tabs compacted, so all five tabs fit without '
-     'clipping. Table 3 shows measured before-and-after values.')
-story.extend(make_table(
-    ['Surface', 'Audit measurement', 'After remediation'],
-    [
-        ['Landing page, 320 px viewport', 'Document 390 px wide — 70 px horizontal scroll', 'Document exactly 320 px — zero overflow'],
-        ['Landing page, 360 px viewport', 'Document 390 px wide — 30 px horizontal scroll', 'Document exactly 360 px — zero overflow'],
-        ['Customer app, desktop ≥768 px', 'Tabs 503 px inside 446 px shell — ends clipped', 'Shell 512 px with compact tabs — all five visible'],
-        ['Merchant dashboard, 320 px', 'Quick actions exceeded the viewport', 'Actions wrap; no horizontal scroll'],
-        ['Customer bottom nav, iPhone', 'No safe-area padding below the bar', 'Respects safe-area insets'],
-        ['Landing hero, 390 px', 'Floating nav overlapped the hero badge', 'Hero clears the fixed nav'],
-    ],
-    [0.30, 0.38, 0.32],
-    caption='Table 3 — Measured responsive defects and verified results.',
-))
+     'The four product-owner defects fixed in round 1 remain fixed and were re-verified in this session\'s '
+     'browser pass after the dependency refresh. In brief: QR photo scanning works without the native '
+     'BarcodeDetector API thanks to the jsQR fallback with rotation retries; the Scan screen leads with a '
+     'single "Scan QR" action and a compact "Have a code instead?" card; the home greeting is recomputed on '
+     'an interval and visibility change, and unnamed users are addressed as "Friend" rather than "there" — '
+     'the round-2 browser session read "GOOD EVENING, Aarav" in the late-evening hour, confirming the '
+     'time-awareness end to end; and sign-in is email-only end to end. This session\'s only frontend edits '
+     'were compliance fixes for the stricter react-hooks rule introduced by the dependency refresh '
+     '(deferred-tick patterns in the OTP auto-verify, carousel API lift and mobile hook — behaviour '
+     'unchanged, confirmed by the browser run).')
 
 # ── 5. Verification ─────────────────────────────────────────────────────────
 h1(story, '5. Verification and Test Evidence')
 para(story,
-     'Every change passed through the same gate sequence: a clean TypeScript compile (tsc --noEmit), a clean '
-     'ESLint run, the full backend end-to-end suite against a freshly seeded database, and a scripted Chromium '
-     'session that exercised the real user journeys. The backend suite is the repository\'s own 31-assertion '
-     'harness covering OTP registration and login, code reuse rejection, feedback duplication control, earning '
-     'via both QR types, redemption limits, merchant approval, notification creation and analytics aggregates. '
-     'It completed with 31 passes and 0 failures after the loyalty-engine rewrite — including the analytics '
-     'aggregate test, which now reflects qualifying visits only.')
-h2(story, '5.1 Browser end-to-end session')
-para(story,
-     'The browser session signed in with a crafted session for the seeded demo customer, then verified each '
-     'fix on the rendered screen: the home greeting read "Good afternoon, Aarav" with all five desktop tabs '
-     'fully visible; the Scan tab showed the new "Scan QR" layout; the native BarcodeDetector API was then '
-     'deliberately deleted from the page to simulate iPhone Safari, and a real QR photograph (generated at '
-     '400 px, encoding a live outlet deep link) was uploaded through the file input. The jsQR path decoded it '
-     'and the app navigated to the correct outlet screen showing "Reward Jar Demo Café" with its check-in '
-     'panel, which is the exact journey that previously failed on the owner\'s phone. The email-only sign-in screen '
-     'was screenshot-verified, and the browser error console stayed empty throughout.')
+     'Round 2 re-ran the complete gate stack on the updated dependency set, plus the two new gates the '
+     'reviewer asked for: the simultaneous-request suite against PostgreSQL, and a production-mode '
+     'simulation of the secret-handling contract. The regression suite is deliberately unchanged from '
+     'round 1 (31 assertions) so its result stays comparable; the new concurrency suite is where the '
+     'isolation evidence lives.')
 story.extend(make_table(
-    ['Gate', 'Command / method', 'Result'],
+    ['Gate', 'Method', 'Result'],
     [
         ['Type safety', 'tsc --noEmit', 'Clean — 0 errors'],
-        ['Lint', 'eslint .', 'Clean — 0 errors'],
-        ['Backend suite', 'bun scripts/e2e-backend.ts (fresh seed)', '31 passed, 0 failed'],
-        ['Browser E2E', 'Chromium session: login, home, scan, QR photo decode, auth screen', 'All journeys pass; console clean'],
-        ['Small-viewport audit', '320 px and 360 px document-width probes', 'scrollWidth == viewport at both widths'],
-        ['Production build', 'Vercel build for commit e0b5d3b', 'Success'],
-        ['Production smoke', 'Live URL probe + console + 320 px probe', 'No errors; no overflow; assets fresh'],
+        ['Lint', 'eslint .', 'Clean — 0 errors (3 set-state-in-effect violations from the dependency '
+                               'refresh fixed)'],
+        ['Backend regression (sandbox)', 'bun scripts/e2e-backend.ts — 31 sequential assertions',
+         '31 passed, 0 failed'],
+        ['<b>Concurrency (PostgreSQL)</b>',
+         '<b>scripts/concurrency-test.ts vs Supabase — Promise.all bursts + 25 h expiry probe</b>',
+         '<b>16 passed, 0 failed — every race has exactly one winner</b>'],
+        ['<b>Secret contract (production mode)</b>',
+         'Server booted with VERCEL=1 and no SESSION_SECRET/OTP_SALT; forged dev-placeholder cookie '
+         'presented; unconfigured OTP channel exercised',
+         'Forged token rejected (null session); bootstrap secrets created as 96-char random hex, '
+         '≠ dev placeholder; OTP request → 503 with no code'],
+        ['Browser E2E (Chromium)', 'Session cookie sign-in; home, scan, history, merchant dashboard',
+         'Greeting "GOOD EVENING, Aarav"; Scan tab shows "Scan QR"; merchant dashboard renders; '
+         'console clean'],
+        ['Small-viewport audit', '320 px document-width probes, landing + app', 'scrollWidth == 320 at both'],
+        ['Production deploy', 'Vercel build for fb584b4', 'Success — live'],
     ],
-    [0.22, 0.48, 0.30],
-    caption='Table 4 — Verification gates and outcomes for release e0b5d3b.',
+    [0.215, 0.44, 0.345],
+    caption='Table 4 — Verification gates for release fb584b4. Bold rows are new in round 2.',
 ))
+para(story,
+     'One honesty note on the browser gate: the round-1 claim that the jsQR path decoded a real QR '
+     'photograph was verified by deleting BarcodeDetector from the page in Chromium — the reviewer is '
+     'right that this exercises the fallback decoder, not iPhone Safari itself. Physical-device '
+     'certification is listed as the named remainder of F11 and remains outstanding; nothing in this '
+     'report should be read as certifying device behaviour.')
 
-# ── 6. Deferred items ───────────────────────────────────────────────────────
-h1(story, '6. Deferred Items and Recommendations')
+# ── 6. Deferred items and residual risk ─────────────────────────────────────
+h1(story, '6. Deferred Items and Residual Risk')
 para(story,
-     'Two audit findings and one residual risk were deliberately deferred rather than forced into this session, '
-     'because fixing them properly requires either a product decision or controlled infrastructure work that '
-     'cannot be validated from this environment. Each is listed with its rationale and the recommended next step '
-     'so it can be scheduled deliberately instead of being forgotten.')
+     'The remaining work is deliberate and named, not forgotten. None of it blocks a controlled pilot; '
+     'the first two matter before any unrestricted public launch.')
 para(story,
-     '<b>F08 — photographed QR is not proof of presence.</b> A saved photo of a counter QR can still be replayed '
-     'after the cooldown from anywhere. Deciding the fraud tolerance is a merchant conversation: options range '
-     'from accepting the risk for low-value stamps, to merchant-issued short-lived visit tokens for valuable '
-     'rewards. Recommend deciding the policy with the first pilot shops before enabling high-value rewards.')
+     '<b>F08 — photographed QR is not proof of presence (deferred, product decision).</b> A saved counter-QR '
+     'photo can still be replayed after the cooldown. Options, in ascending order of friction: accept the '
+     'risk for low-value stamp rewards; require merchant-issued short-lived visit tokens for high-value '
+     'rewards; or move approvals in-store. This needs the pilot merchants\' fraud tolerance, not code.')
 para(story,
-     '<b>F10 — dependency security update.</b> The audit flags Next.js 16.1.3 against the 14 October 2026 '
-     'security advisory (patched in 16.4.1). The upgrade was deferred deliberately: a framework version jump '
-     'must be validated against the Vercel build and the full test suite, and bundling it with eleven other '
-     'fixes would make any regression hard to attribute. Recommend running the upgrade as its own change: '
-     'bump, build, run the 31-test suite and the browser session, then deploy.')
+     '<b>F11 remainder — real-device camera certification (partial).</b> jsQR removed the API dependency, '
+     'but only physical iPhone Safari and Android Chrome journeys — including denied camera permission, '
+     'poor lighting and rotated photos — can certify the scan experience. Browser emulation, including '
+     'this round\'s Chromium run, cannot.')
 para(story,
-     '<b>F14 — release and recovery infrastructure.</b> Migrations history, CI gates, backup drills and a '
-     'readiness probe are operational work on the GitHub/Vercel/Supabase side. The audit\'s Stage-2 plan is a '
-     'sound template: create a reviewed migration baseline, add CI (frozen install, lint, typecheck, build, '
-     'tests), verify Supabase Data API lockdown is applied live, and rehearse one backup restore. Also '
-     'scheduled for real-device QA: physical iPhone Safari and Android Chrome camera journeys, which browser '
-     'emulation cannot fully certify.')
+     '<b>F14 remainder — release and recovery infrastructure (partial).</b> The CI workflow exists in the '
+     'working tree but could not be pushed: the deploy token lacks the workflow scope (pushing it needs a '
+     'one-scope grant or the owner\'s own token). Still open beyond that: a reviewed Prisma migration '
+     'baseline replacing db push in release, a staging database separated from production, one rehearsed '
+     'Supabase backup restore, and a dependency-checking readiness probe.')
 para(story,
-     'Two operational notes from this session are worth recording. First, a platform file-restore rolled the '
-     'local working copy and git history back to a 20 October checkpoint mid-session; the repository was '
-     'recovered from the GitHub remote with no loss (the remote and production were unaffected), and local '
-     'environment secrets were re-entered. Second, the production deployment now requires the SMTP and '
-     'SESSION_SECRET variables to remain set in Vercel; the application warns loudly but does not crash if they '
-     'are missing, and OTP delivery fails closed with a 503 rather than ever exposing a code.')
+     '<b>Operational confirmation for the owner.</b> The database-pushed SystemConfig table now guarantees '
+     'that a missing SESSION_SECRET or OTP_SALT can never degrade into a predictable secret — but '
+     'environment-provided secrets remain the preferred tier and should be confirmed (and, at the '
+     'owner\'s discretion, rotated) in the Vercel project settings; the deploy token used by this '
+     'automation has no Vercel access, so this confirmation is owner-side. The same token has now been '
+     'used for six pushes and should be revoked after this session.')
 
-# ── 7. Deployment record ────────────────────────────────────────────────────
-h1(story, '7. Deployment Record')
-para(story,
-     'The release is a single commit built on the remediation of the previous session\'s logo swap. It was '
-     'pushed to the main branch, picked up by the Vercel Git integration, built successfully on the first '
-     'attempt, and verified live. The production URL serves the updated bundle; a post-deploy smoke probe '
-     'confirmed a clean console, fresh assets, and zero horizontal overflow at 320 px.')
+# ── 7. Deployment record and accurate closing position ──────────────────────
+story.append(PageBreak())  # keep the release record + closing position together on one page
+h1(story, '7. Deployment Record and Closing Position')
 story.extend(make_table(
     ['Event', 'Detail'],
     [
-        ['Remediation commit', 'e0b5d3b — "fix: production-audit remediation + user-reported UX fixes"'],
-        ['Parent commit', 'bcaa609 — jar logo swap (previous session)'],
-        ['Push', 'bcaa609..e0b5d3b, main → github.com/sahilnegi1/perkloopbyzlm'],
-        ['Build', 'Vercel production build — success'],
+        ['Round-1 release', 'e0b5d3b — user-reported fixes + first remediation pass (already live)'],
+        ['Round-2 commit', 'fb584b4 — fail-closed secrets, explicit expiry, single-tx activation, '
+                           'concurrency suite, dependency refresh'],
+        ['Schema change', 'SystemConfig table + two indexes pushed to Supabase PostgreSQL before deploy '
+                          '(additive, non-breaking); same shape applied to the SQLite sandbox schema'],
+        ['Push', 'e0b5d3b..fb584b4, main → github.com/sahilnegi1/perkloopbyzlm'],
+        ['Deploy', 'Vercel Git integration — production'],
         ['Live URL', 'https://perkloopbyzlm-jobbuddies.vercel.app (canonical production)'],
-        ['Post-deploy smoke', 'No console errors; document width 320 px at 320 px viewport'],
     ],
-    [0.28, 0.72],
-    caption='Table 5 — Release record for the remediation deployment.',
+    [0.26, 0.74],
+    caption='Table 5 — Round-2 release record.',
 ))
 para(story,
-     'With this release the Reward Jar pilot stack is materially closer to the audit\'s Stage-1 exit condition: '
-     'no unresolved P0 findings remain in code, and every P1 finding tied to a workflow that the pilot will '
-     'exercise has been repaired. The remaining items are deliberate, scheduled work rather than open defects.')
+     '<b>The accurate closing position, replacing the round-1 claim that "no unresolved P0 findings '
+     'remain":</b> the predictable-secret vulnerability (F01) is closed in code and demonstrated by '
+     'simulation — a deployed host can no longer sign or accept sessions with any source-derivable value, '
+     'and if it cannot obtain a real secret at all it refuses to authenticate rather than degrade. That is '
+     'a code-level guarantee, not yet an environmental one: until the owner confirms the Vercel '
+     'environment, production runs on the random bootstrapped secret, which is safe but should be treated '
+     'as provisional. F02\'s fix now rests on dedicated concurrent-request evidence against the production '
+     'database engine rather than inference from sequential tests. What this report does not claim: it is '
+     'not an end-to-end security certification, it does not certify real-device camera behaviour, and it '
+     'does not close F08 or the F14 infrastructure remainder. Those are named, scheduled items — the '
+     'recommended gate before a controlled merchant pilot remains the reviewer\'s own list, and this '
+     'release completes it: secret guard done, dependency update done, expiry handling done, PostgreSQL '
+     'regression tests done.')
+story.extend(make_table(
+    ['Document control', ''],
+    [
+        ['Report version', '2.0 (round 2) — supersedes the round-1 report of 25 October 2026'],
+        ['Release examined', 'Commit fb584b4 on main, deployed to production by Vercel'],
+        ['Verification base', '47 automated assertions (31 regression + 16 concurrency), production-mode '
+                              'secret simulation, Chromium browser pass, 320 px probes'],
+        ['Outstanding items', 'F08 policy decision · F11 real-device camera QA · F14 migrations, backups, '
+                              'CI push · owner-side Vercel env confirmation and token revocation'],
+        ['Prepared by', 'Z.ai engineering automation, 25 October 2026'],
+    ],
+    [0.24, 0.76],
+    caption='Document control — scope and remaining work at a glance.',
+    col_styles=['td', 'td'],
+))
 
 # ── Build ────────────────────────────────────────────────────────────────────
 doc = TocDocTemplate(
     OUT, pagesize=A4,
     leftMargin=LM, rightMargin=RM, topMargin=TM, bottomMargin=BM,
-    title='Reward Jar — Production Audit Remediation Report',
+    title='Reward Jar — Production Audit Remediation Report (Round 2)',
     author='Z.ai',
 )
+# Trim trailing spacers so the last flowable never spills onto a blank page.
+while story and isinstance(story[-1], Spacer):
+    story.pop()
+
 doc.multiBuild(story)
 print('body.pdf written:', os.path.getsize(OUT), 'bytes')
