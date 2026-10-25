@@ -55,7 +55,8 @@ export function CustomerApp({ subRoute }: { subRoute: string[] }) {
   }, [fetched, fetchMe]);
 
   const notifications = useApiData<{ notifications: NotificationT[]; unread: number }>(
-    user?.role === "CUSTOMER" ? "/api/notifications" : null
+    user?.role === "CUSTOMER" ? "/api/notifications" : null,
+    15_000 // audit F12: approval/notification updates arrive without a manual reload
   );
   const refreshNotifications = () => notifications.reload();
 
@@ -115,7 +116,7 @@ export function CustomerApp({ subRoute }: { subRoute: string[] }) {
   if (loading) {
     return (
       <div className="flex min-h-dvh justify-center bg-background">
-        <div className="flex h-dvh w-full max-w-md flex-col border-border md:border-x">
+        <div className="flex h-dvh w-full max-w-md flex-col md:max-w-lg border-border md:border-x">
           <GateScreen line="Opening your wallet…" />
         </div>
       </div>
@@ -124,7 +125,7 @@ export function CustomerApp({ subRoute }: { subRoute: string[] }) {
   if (!user) {
     return (
       <div className="flex min-h-dvh justify-center bg-background">
-        <div className="flex h-dvh w-full max-w-md flex-col border-border md:border-x">
+        <div className="flex h-dvh w-full max-w-md flex-col md:max-w-lg border-border md:border-x">
           <GateScreen line="Taking you to sign in…" />
         </div>
       </div>
@@ -133,7 +134,7 @@ export function CustomerApp({ subRoute }: { subRoute: string[] }) {
   if (user.role === "MERCHANT_OWNER") {
     return (
       <div className="flex min-h-dvh justify-center bg-background">
-        <div className="flex h-dvh w-full max-w-md flex-col border-border md:border-x">
+        <div className="flex h-dvh w-full max-w-md flex-col md:max-w-lg border-border md:border-x">
           <MerchantOwnerGate via="app" />
         </div>
       </div>
@@ -142,7 +143,7 @@ export function CustomerApp({ subRoute }: { subRoute: string[] }) {
 
   return (
     <div className="flex min-h-dvh justify-center bg-background">
-      <div className="flex h-dvh w-full max-w-md flex-col border-border bg-background md:border-x md:shadow-[0_12px_32px_rgba(26,29,22,0.08)]">
+      <div className="flex h-dvh w-full max-w-md flex-col md:max-w-lg border-border bg-background md:border-x md:shadow-[0_12px_32px_rgba(26,29,22,0.08)]">
         <TopTabs subRoute={subRoute} />
         <main
           ref={mainRef}

@@ -153,7 +153,28 @@ export function ProfileTab() {
               sub="rewardjarsupport@gmail.com — we usually reply within a day"
               href="mailto:rewardjarsupport@gmail.com?subject=Reward%20Jar%20support"
             />
-            <LinkRow icon={HelpCircle} label="FAQ" sub="How stamps, points and rewards work" href="#/faq" />
+            <LinkRow
+              icon={HelpCircle}
+              label="FAQ"
+              sub="How stamps, points and rewards work"
+              onClick={() => {
+                // Audit F13: "#/faq" used to fall through to the landing page
+                // without opening the FAQ section. Navigate to the landing and
+                // scroll to the FAQ section once it has rendered.
+                navigate("#/");
+                let tries = 0;
+                const tick = () => {
+                  const el = document.getElementById("faq");
+                  if (el) {
+                    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+                  } else if (tries++ < 20) {
+                    setTimeout(tick, 60);
+                  }
+                };
+                setTimeout(tick, 80);
+              }}
+            />
             <LinkRow icon={ShieldCheck} label="Data & privacy" sub="What we store and why" href="#/privacy" />
             <LinkRow icon={FileText} label="Terms of use" href="#/terms" />
           </div>

@@ -1,19 +1,21 @@
 "use client";
 
 /**
- * Scan (#/app/scan) — the tab that scans. Primary action decodes a QR from a
- * photo (BarcodeDetector + native camera capture — no getUserMedia needed).
- * Paste-a-code stays as the universal fallback; unsupported browsers get an
- * honest message, never a fake scanner.
+ * Scan (#/app/scan) — primary action decodes a QR from the camera (a photo of
+ * the counter code). Decoding: native BarcodeDetector when the browser has it,
+ * jsQR everywhere else (notably iPhone Safari, which has no BarcodeDetector).
+ * Includes a 90°-rotation retry so counter photos taken at odd angles decode.
+ * Manual code entry stays as a compact universal fallback.
  */
 
 import { useRef, useState } from "react";
+import jsQR from "jsqr";
 import { EmptyState, Reveal, Spinner } from "@/components/customer/shared";
 import { navigate } from "@/lib/hash-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Camera, ClipboardPaste, ImageUp, ScanLine, TriangleAlert } from "lucide-react";
+import { ArrowRight, ScanLine, TriangleAlert } from "lucide-react";
 
 type Parsed =
   | { kind: "outlet"; code: string; href: string }
@@ -24,7 +26,7 @@ export function parseRewardCode(raw: string): Parsed | null {
   const value = raw.trim();
   if (!value) return null;
 
-  // Full URLs first: ...#/o/{code} or ...#/t/{token}
+  // Full URLs first: ...#/t/{token} or ...#/o/{code}
   const tMatch = value.match(/#\/t\/([A-Za-z0-9_-]+)/);
   if (tMatch) return { kind: "txn", token: tMatch[1], href: `#/t/${tMatch[1]}` };
   const oMatch = value.match(/#\/o\/([^/?#\s]+)/);
@@ -42,8 +44,74 @@ export function parseRewardCode(raw: string): Parsed | null {
   return null;
 }
 
-const barcodeSupported = () =>
+/** Back-compat alias (older imports may still use the previous name). */
+export const parsePerkCode = parseRewardCode;
+
+const hasBarcodeDetector = () =>
   typeof window !== "undefined" && "BarcodeDetector" in window;
+
+/**
+ * Decode a QR payload from an image file. Order:
+ *   1. Native BarcodeDetector (Chromium — fastest, handles perspective well).
+ *   2. jsQR over canvas ImageData, retrying at 0°/90°/270°/180° (pure JS —
+ *      works on iPhone Safari and every other browser).
+ * Returns null when nothing decodable is found.
+ */
+async function decodeQrFromFile(file: File): Promise<string | null> {
+  const bitmap = await createImageBitmap(file);
+
+  // 1) Native detector first when available.
+  if (hasBarcodeDetector()) {
+    try {
+      const detector = new BarcodeDetector({ formats: ["qr_code"] });
+      const hits = await detector.detect(bitmap);
+      if (hits.length > 0 && hits[0].rawValue) {
+        bitmap.close?.();
+        return hits[0].rawValue;
+      }
+    } catch {
+      /* fall through to jsQR */
+    }
+  }
+
+  // 2) jsQR across rotations. Long edge capped at 1280px for speed.
+  const MAX_EDGE = 1280;
+  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  const w = Math.max(1, Math.round(bitmap.width * scale));
+  const h = Math.max(1, Math.round(bitmap.height * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) {
+    bitmap.close?.();
+    return null;
+  }
+
+  const rotations = [0, 90, 270, 180];
+  try {
+    for (const deg of rotations) {
+      ctx.save();
+      if (deg === 0) {
+        ctx.drawImage(bitmap, 0, 0, w, h);
+      } else {
+        canvas.width = h;
+        canvas.height = w;
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((deg * Math.PI) / 180);
+        ctx.drawImage(bitmap, -w / 2, -h / 2, w, h);
+      }
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const found = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+      ctx.restore();
+      if (found?.data) return found.data;
+    }
+  } finally {
+    bitmap.close?.();
+  }
+  return null;
+}
 
 export function ScanTab() {
   const [value, setValue] = useState("");
@@ -73,41 +141,24 @@ export function ScanTab() {
   /** Decode a QR from a photo taken at the counter (UX-01). */
   const scanPhoto = async (file: File) => {
     setError(null);
-    if (!barcodeSupported()) {
-      setError("This browser can't scan photos — take a photo and use the shop's link below instead, or paste the code.");
-      return;
-    }
     setScanning(true);
     try {
-      const detector = new BarcodeDetector({ formats: ["qr_code"] });
-      const bitmap = await createImageBitmap(file);
-      const hits = await detector.detect(bitmap);
-      bitmap.close?.();
-      if (hits.length === 0) {
-        setError("No QR code found in that photo. Move closer, fill the frame, and try again — or paste the code below.");
+      const raw = await decodeQrFromFile(file);
+      if (!raw) {
+        setError(
+          "No QR code found in that photo. Move closer, fill the frame with the code, and try again — or enter the code below."
+        );
         return;
       }
-      if (!openParsed(hits[0].rawValue)) {
+      if (!openParsed(raw)) {
         // Decoded something, but it isn't a Reward Jar payload — let the user see/edit it.
-        setValue(hits[0].rawValue);
-        setError("Found a code, but it isn't a Reward Jar QR. Check the text below or paste the shop's code.");
+        setValue(raw);
+        setError("Found a code, but it isn't a Reward Jar QR. Check the text below or enter the shop's code.");
       }
     } catch {
-      setError("Couldn't read that photo. Try again in better light — or paste the code below.");
+      setError("Couldn't read that photo. Try again in better light — or enter the code below.");
     } finally {
       setScanning(false);
-    }
-  };
-
-  const pasteFromClipboard = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text) {
-        setValue(text);
-        setError(null);
-      }
-    } catch {
-      setError("Your browser blocked clipboard access — paste into the box manually.");
     }
   };
 
@@ -122,18 +173,18 @@ export function ScanTab() {
         </div>
       </Reveal>
 
-      {/* Primary action — scan a photo of the counter QR */}
+      {/* Primary action — scan the counter QR (camera or gallery) */}
       <Reveal delay={0.06}>
         <div className="rounded-2xl bg-forest p-5 text-primary-foreground shadow-[0_12px_32px_rgba(26,29,22,0.12)]">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
-            <Camera className="h-6 w-6 text-lime" aria-hidden />
+            <ScanLine className="h-6 w-6 text-lime" aria-hidden />
           </div>
           <h2 className="mt-3 font-display text-lg font-extrabold tracking-[-0.01em] text-primary-foreground">
             Scan the counter QR
           </h2>
           <p className="mt-1.5 text-sm leading-relaxed text-primary-foreground/75">
-            Take a photo of the shop's Reward Jar QR code — we read it right on your
-            phone. No app download, nothing to install.
+            Point your camera at the shop's Reward Jar QR code — we read it right
+            on your phone. No app download, nothing to install.
           </p>
 
           <input
@@ -142,7 +193,7 @@ export function ScanTab() {
             accept="image/*"
             capture="environment"
             className="sr-only"
-            aria-label="Take a photo of the QR code"
+            aria-label="Scan the QR code with your camera"
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) void scanPhoto(f);
@@ -154,21 +205,20 @@ export function ScanTab() {
             disabled={scanning}
             className="press mt-4 h-12 w-full rounded-full bg-lime text-base font-semibold text-forest hover:bg-lime/90"
           >
-            {scanning ? <Spinner /> : <ImageUp className="h-4 w-4" aria-hidden />}
-            {scanning ? "Reading the code…" : "Scan a photo of the code"}
+            {scanning ? <Spinner /> : <ScanLine className="h-4 w-4" aria-hidden />}
+            {scanning ? "Reading the code…" : "Scan QR"}
           </Button>
         </div>
       </Reveal>
 
-      {/* Universal fallback — paste any code or link */}
+      {/* Compact universal fallback — enter any code or link */}
       <Reveal delay={0.12}>
-        <div className="space-y-3 rounded-2xl border border-border bg-card p-5">
-          <h2 className="font-display text-base font-bold">Have a code? Paste it</h2>
-          <p className="text-sm text-muted-foreground">
-            Works with a shop's outlet code, a one-time payment code, or a full
-            <span className="font-mono text-xs"> /#/o/… </span>or
-            <span className="font-mono text-xs"> /#/t/… </span>
-            link someone shared.
+        <div className="space-y-2.5 rounded-2xl border border-border bg-card p-4">
+          <p className="text-[13px] font-semibold text-ink">
+            Have a code instead?
+          </p>
+          <p className="text-xs leading-5 text-muted-foreground">
+            Enter the shop's outlet code, a one-time payment code, or the full link they shared.
           </p>
           <div className="flex gap-2">
             <Input
@@ -180,35 +230,26 @@ export function ScanTab() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !busy) go();
               }}
-              placeholder="e.g. cmvx…  ·  a payment code  ·  full URL"
+              placeholder="Outlet code or link"
               aria-label="Reward Jar code"
-              className={cn("h-12 rounded-xl font-mono text-sm", error && "border-destructive")}
+              className={cn("h-11 rounded-xl font-mono text-sm", error && "border-destructive")}
               aria-invalid={Boolean(error)}
             />
             <Button
-              variant="outline"
-              onClick={() => void pasteFromClipboard()}
-              aria-label="Paste from clipboard"
-              className="press h-12 w-12 shrink-0 rounded-xl p-0"
+              onClick={go}
+              disabled={busy || value.trim().length === 0}
+              aria-label="Open this code"
+              className="press h-11 w-11 shrink-0 rounded-xl p-0"
             >
-              <ClipboardPaste className="h-4 w-4" aria-hidden />
+              {busy ? <Spinner /> : <ArrowRight className="h-4 w-4" aria-hidden />}
             </Button>
           </div>
           {error && (
-            <p className="flex items-start gap-1.5 text-sm font-medium text-destructive" role="alert">
-              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <p className="flex items-start gap-1.5 text-xs font-medium text-destructive" role="alert">
+              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               {error}
             </p>
           )}
-          <Button
-            onClick={go}
-            disabled={busy || value.trim().length === 0}
-            className="press h-12 w-full rounded-full text-base font-semibold"
-          >
-            {busy ? <Spinner /> : <ScanLine className="h-4 w-4" aria-hidden />}
-            Open this code
-            <ArrowRight className="h-4 w-4" aria-hidden />
-          </Button>
         </div>
       </Reveal>
 

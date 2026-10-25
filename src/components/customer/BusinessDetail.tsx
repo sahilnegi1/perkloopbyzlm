@@ -235,10 +235,12 @@ export function BusinessDetail({ businessId, backTo }: { businessId: string; bac
 
   const biz = useApiData<BusinessDetailRes>(`/api/businesses/${businessId}`);
   const wallet = useApiData<WalletDetailT>(
-    isCustomer ? `/api/wallet/${businessId}` : null
+    isCustomer ? `/api/wallet/${businessId}` : null,
+    12_000 // audit F12: approval on another device refreshes without a reload
   );
 
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
+  const [cancelingPending, setCancelingPending] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const goBack = () => navigate(backTo);
@@ -260,6 +262,30 @@ export function BusinessDetail({ businessId, backTo }: { businessId: string; bac
       });
     } finally {
       setRedeemingId(null);
+    }
+  };
+
+  // Audit F12: a pending request used to trap the customer until the merchant
+  // decided. A pending request can now be withdrawn by its owner.
+  const cancelPending = async () => {
+    const pendingId = wallet.data?.pendingRedemption?.id;
+    if (!pendingId) return;
+    setCancelingPending(true);
+    try {
+      await post(`/api/redemptions/${pendingId}/cancel`);
+      toast({
+        title: "Request withdrawn",
+        description: "Your balance is unchanged. You can request a reward again whenever you like.",
+      });
+      wallet.reload();
+    } catch (e) {
+      toast({
+        title: "Couldn't withdraw the request",
+        description: e instanceof ApiError ? e.message : "Something went wrong. Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCancelingPending(false);
     }
   };
 
@@ -457,6 +483,15 @@ export function BusinessDetail({ businessId, backTo }: { businessId: string; bac
                   Sent {formatWhen(wallet.data!.pendingRedemption.createdAt)} — the shop will confirm
                   it. You can't request another reward here until then.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => void cancelPending()}
+                  disabled={cancelingPending}
+                  className="press mt-2 inline-flex items-center gap-1 text-xs font-semibold text-sienna underline underline-offset-4 disabled:opacity-60"
+                >
+                  {cancelingPending ? <Spinner className="h-3 w-3" /> : null}
+                  Withdraw this request
+                </button>
               </div>
               <StatusChip status="PENDING" />
             </div>

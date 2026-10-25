@@ -31,7 +31,7 @@ export function RedemptionsScreen({
   business?: BusinessT;
   onPendingCount?: (n: number) => void;
 }) {
-  const queue = useApiData<{ redemptions: RedemptionRowT[] }>("/api/merchant/redemptions");
+  const queue = useApiData<{ redemptions: RedemptionRowT[] }>("/api/merchant/redemptions", 15_000);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [tab, setTab] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");

@@ -3,7 +3,15 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ApiErr, audit, handleRoute, requireMembership, requireMerchant } from "@/lib/auth-helpers";
 import { parseBody, parseProgramConfig, programCreateSchema, programUpdateSchema } from "@/lib/validation";
-import { assertSingleActiveProgram, summarizeProgram } from "@/lib/loyalty";
+import { assertSingleActiveProgram, dbTx, summarizeProgram } from "@/lib/loyalty";
+
+/**
+ * Program types offered at launch (audit F06): every selectable type must pass
+ * create → earn → redeem → approve. SERVICE_COUNT / SPEND / CUSTOM_OFFER have
+ * no earning implementation yet, so they are rejected at creation with a
+ * friendly message instead of silently trapping customers.
+ */
+const LAUNCH_PROGRAM_TYPES = ["POINTS", "STAMPS"] as const;
 
 /** GET /api/merchant/program?businessId= — programs across the caller's businesses. */
 export async function GET(req: NextRequest) {
@@ -34,37 +42,49 @@ export async function POST(req: NextRequest) {
     const body = await parseBody(programCreateSchema, req);
     const membership = await requireMembership(body.businessId, { manage: true });
 
-    const config = parseProgramConfig(body.type, body.config);
-    if (body.status === "ACTIVE") {
-      await assertSingleActiveProgram(db, membership.businessId, body.type);
+    if (!(LAUNCH_PROGRAM_TYPES as readonly string[]).includes(body.type)) {
+      throw new ApiErr(
+        400,
+        `${body.type.replace("_", " ").toLowerCase()} programs are coming soon. Start with Points or a stamp card.`
+      );
     }
+
+    const config = parseProgramConfig(body.type, body.config);
     if (body.startsAt && body.endsAt && body.startsAt > body.endsAt) {
       throw new ApiErr(400, "Program start date must be before its end date.");
     }
 
-    const program = await db.loyaltyProgram.create({
-      data: {
+    // Audit F03: the one-active-program-per-type rule is enforced inside the
+    // same serializable transaction as the create, so two simultaneous
+    // requests cannot both activate a program of the same type.
+    const program = await dbTx(async (tx) => {
+      if (body.status === "ACTIVE") {
+        await assertSingleActiveProgram(tx, membership.businessId, body.type);
+      }
+      const created = await tx.loyaltyProgram.create({
+        data: {
+          businessId: membership.businessId,
+          name: body.name,
+          type: body.type,
+          config: JSON.stringify(config),
+          terms: body.terms ?? null,
+          status: body.status,
+          startsAt: body.startsAt ?? null,
+          endsAt: body.endsAt ?? null,
+          perCustomerLimit: body.perCustomerLimit ?? null,
+          minSpendPaise: body.minSpendPaise ?? null,
+        },
+      });
+      await audit(tx, {
+        actorType: membership.role === "STAFF" ? "STAFF" : "MERCHANT",
+        actorId: membership.userId,
         businessId: membership.businessId,
-        name: body.name,
-        type: body.type,
-        config: JSON.stringify(config),
-        terms: body.terms ?? null,
-        status: body.status,
-        startsAt: body.startsAt ?? null,
-        endsAt: body.endsAt ?? null,
-        perCustomerLimit: body.perCustomerLimit ?? null,
-        minSpendPaise: body.minSpendPaise ?? null,
-      },
-    });
-
-    await audit(db, {
-      actorType: membership.role === "STAFF" ? "STAFF" : "MERCHANT",
-      actorId: membership.userId,
-      businessId: membership.businessId,
-      action: "PROGRAM_CREATED",
-      entity: "LoyaltyProgram",
-      entityId: program.id,
-      meta: { name: program.name, type: program.type, status: program.status },
+        action: "PROGRAM_CREATED",
+        entity: "LoyaltyProgram",
+        entityId: created.id,
+        meta: { name: created.name, type: created.type, status: created.status },
+      });
+      return created;
     });
 
     return NextResponse.json({ program: summarizeProgram(program) }, { status: 201 });
@@ -93,11 +113,23 @@ export async function PUT(req: NextRequest) {
     }
 
     if (body.status === "ACTIVE" && existing.status !== "ACTIVE") {
-      await assertSingleActiveProgram(db, existing.businessId, existing.type, existing.id);
+      // Audit F03: activation re-checks uniqueness inside a serializable tx.
+      await dbTx(async (tx) => {
+        await assertSingleActiveProgram(tx, existing.businessId, existing.type, existing.id);
+        const startsAt = body.startsAt ?? existing.startsAt;
+        const endsAt = body.endsAt ?? existing.endsAt;
+        if (startsAt && endsAt && startsAt > endsAt) {
+          throw new ApiErr(400, "Program start date must be before its end date.");
+        }
+        await tx.loyaltyProgram.update({
+          where: { id: existing.id },
+          data: { status: "ACTIVE" },
+        });
+      });
     }
     const startsAt = body.startsAt ?? existing.startsAt;
     const endsAt = body.endsAt ?? existing.endsAt;
-    if (startsAt && endsAt && startsAt > endsAt) {
+    if (!(body.status === "ACTIVE" && existing.status !== "ACTIVE") && startsAt && endsAt && startsAt > endsAt) {
       throw new ApiErr(400, "Program start date must be before its end date.");
     }
 

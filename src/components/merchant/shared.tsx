@@ -261,7 +261,12 @@ export type ApiState<T> = {
   reload: () => void;
 };
 
-export function useApiData<T>(path: string | null): ApiState<T> {
+/**
+ * GET a path and hold the result (same contract as customer shared.useApiData).
+ * `pollMs` re-fetches on an interval while the document is visible — used for
+ * the pending-approval queue so merchant decisions stay current (audit F12).
+ */
+export function useApiData<T>(path: string | null, pollMs?: number): ApiState<T> {
   const [state, setState] = useState<{ data: T | null; error: ApiError | null; key: string }>({
     data: null,
     error: null,
@@ -295,6 +300,23 @@ export function useApiData<T>(path: string | null): ApiState<T> {
     };
   }, [path, key]);
 
+  // Background poll (visible tab only) — approval queue refreshes without a
+  // manual reload (audit F12).
+  useEffect(() => {
+    if (!path || !pollMs) return;
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") setTick((t) => t + 1);
+    }, pollMs);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setTick((t) => t + 1);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [path, pollMs]);
+
   const loading = path !== null && state.key !== key;
   return {
     data: !loading ? state.data : null,
@@ -303,7 +325,6 @@ export function useApiData<T>(path: string | null): ApiState<T> {
     reload: useCallback(() => setTick((t) => t + 1), []),
   };
 }
-
 // ─── Empty & error states (honest, in-system) ────────────────────────────────
 
 export function EmptyBlock({

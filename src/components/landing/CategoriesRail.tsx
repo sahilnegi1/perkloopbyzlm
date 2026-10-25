@@ -103,7 +103,7 @@ export function CategoriesRail() {
             onScroll={syncArrows}
             tabIndex={0}
             aria-label="Shop categories — scroll for more"
-            className="scroll-slim -mx-4 flex snap-x snap-proximity gap-4 overflow-x-auto px-4 pt-1 pb-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [mask-image:linear-gradient(to_right,transparent,black_28px,black_calc(100%_-_28px),transparent)] sm:-mx-6 sm:px-6"
+            className="scroll-slim -mx-4 flex snap-x snap-proximity gap-4 overflow-x-auto px-4 pt-1 pb-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [m[mask-image:linear-gradient(to_right,transparent,black_28px,black_calc(100%_-_28px),transparent)] sm:-mx-6 sm:px-6"
           >
             {CATEGORIES.map((cat) => (
               <li

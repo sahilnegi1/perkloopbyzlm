@@ -37,11 +37,14 @@ import {
   type ProgramRowT,
 } from "./shared";
 
+/**
+ * Launch scope (audit F06): every offered program type must complete the full
+ * create → earn → redeem → approve loop. Only STAMPS and POINTS do today;
+ * SERVICE_COUNT/STARS stay out of the creation UI until their mechanic exists.
+ */
 const TYPE_OPTIONS = [
   { value: "STAMPS", label: "Stamp card", blurb: "One stamp per visit — a free reward after N visits." },
   { value: "POINTS", label: "Points on spend", blurb: "Earn points per ₹100 spent at the counter." },
-  { value: "SERVICE_COUNT", label: "Visit counter", blurb: "A free service after N paid visits." },
-  { value: "STARS", label: "Stars", blurb: "Earn 1–5 stars per visit; a reward at N stars." },
 ] as const;
 
 type ProgramType = (typeof TYPE_OPTIONS)[number]["value"];
@@ -73,17 +76,6 @@ function buildConfig(type: ProgramType, c: ConfigDraft): Record<string, number> 
       if (!Number.isInteger(int(c.pointsPerRupeePaise)) || int(c.pointsPerRupeePaise) < 1 || int(c.pointsPerRupeePaise) > 100)
         return "Points per ₹100 must be between 1 and 100.";
       return { pointsPerRupeePaise: int(c.pointsPerRupeePaise) };
-    case "SERVICE_COUNT":
-      if (!Number.isInteger(int(c.servicesToReward)) || int(c.servicesToReward) < 2 || int(c.servicesToReward) > 50)
-        return "Visits for a free service must be between 2 and 50.";
-      return { servicesToReward: int(c.servicesToReward) };
-    case "STARS": {
-      const spv = int(c.starsPerVisit);
-      const str = int(c.starsToReward);
-      if (!Number.isInteger(spv) || spv < 1 || spv > 5) return "Stars per visit must be between 1 and 5.";
-      if (!Number.isInteger(str) || str < 2 || str < spv) return "Stars for a reward must be at least the stars per visit.";
-      return { starsPerVisit: spv, starsToReward: str };
-    }
   }
 }
 
@@ -480,49 +472,6 @@ function ProgramEditorDialog({
                 onChange={(e) => setConfig((c) => ({ ...c, pointsPerRupeePaise: e.target.value.replace(/\D/g, "") }))}
               />
               <p className="mt-1.5 text-xs text-muted-foreground">1–100 · customers earn on scanned amount QRs.</p>
-            </div>
-          )}
-          {type === "SERVICE_COUNT" && (
-            <div>
-              <FieldLabel htmlFor="cfg-count">Visits for a free service</FieldLabel>
-              <Input
-                id="cfg-count"
-                type="number"
-                min={2}
-                max={50}
-                className="h-11 rounded-xl tabular-nums"
-                value={config.servicesToReward}
-                onChange={(e) => setConfig((c) => ({ ...c, servicesToReward: e.target.value.replace(/\D/g, "") }))}
-              />
-              <p className="mt-1.5 text-xs text-muted-foreground">2–50 · e.g. every 8th wash free.</p>
-            </div>
-          )}
-          {type === "STARS" && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <FieldLabel htmlFor="cfg-spv">Stars per visit</FieldLabel>
-                <Input
-                  id="cfg-spv"
-                  type="number"
-                  min={1}
-                  max={5}
-                  className="h-11 rounded-xl tabular-nums"
-                  value={config.starsPerVisit}
-                  onChange={(e) => setConfig((c) => ({ ...c, starsPerVisit: e.target.value.replace(/\D/g, "") }))}
-                />
-              </div>
-              <div>
-                <FieldLabel htmlFor="cfg-str">Stars for a reward</FieldLabel>
-                <Input
-                  id="cfg-str"
-                  type="number"
-                  min={2}
-                  max={100}
-                  className="h-11 rounded-xl tabular-nums"
-                  value={config.starsToReward}
-                  onChange={(e) => setConfig((c) => ({ ...c, starsToReward: e.target.value.replace(/\D/g, "") }))}
-                />
-              </div>
             </div>
           )}
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
-import { audit, handleRoute, publicUser, requireMembership, requireUser } from "@/lib/auth-helpers";
+import { ApiErr, audit, handleRoute, publicUser, requireMembership, requireUser } from "@/lib/auth-helpers";
 import { businessCreateSchema, businessUpdateSchema, parseBody } from "@/lib/validation";
 
 /** GET /api/merchant/business — caller's business(es) + outlets + programs + rewards. */
@@ -43,6 +43,17 @@ export async function POST(req: NextRequest) {
   return handleRoute(async () => {
     const { user } = await requireUser();
     const body = await parseBody(businessCreateSchema, req);
+
+    // Audit F09: the merchant shell has no business selector yet, so a second
+    // business would create inconsistent scope (settings, outlets, programs).
+    // One business per owner for the pilot — explicit, friendly rejection.
+    const existingCount = await db.businessMember.count({ where: { userId: user.id } });
+    if (existingCount > 0) {
+      throw new ApiErr(
+        409,
+        "Your account already runs a business. Running multiple businesses isn't supported yet."
+      );
+    }
 
     const business = await db.business.create({
       data: {

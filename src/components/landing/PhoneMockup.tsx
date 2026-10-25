@@ -12,9 +12,11 @@ export function PhoneMockup() {
   return (
     <figure
       aria-label="Product illustration of the Reward Jar customer wallet"
-      className="relative w-fit"
+      className="relative w-fit max-w-full"
     >
-      <div className="relative w-[270px] rounded-[2.75rem] border border-white/15 bg-[#0B2400] p-[10px] shadow-lift sm:w-[300px]">
+      {/* max-w-full keeps the fixed-width frame inside 320–360px viewports
+          (audit: landing horizontal overflow at small phones). */}
+      <div className="relative w-[270px] max-w-full rounded-[2.75rem] border border-white/15 bg-[#0B2400] p-[10px] shadow-lift sm:w-[300px]">
         <div className="relative overflow-hidden rounded-[2.25rem] bg-[#FAF7F2]">
           {/* status bar */}
           <div className="flex items-center justify-between px-6 pt-3">

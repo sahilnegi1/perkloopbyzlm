@@ -16,6 +16,11 @@ export type DeliveryResult =
 
 // ─── Config detection ─────────────────────────────────────────────────────────
 
+/** Production = deployed environment (Vercel or NODE_ENV=production). */
+export function isProduction(): boolean {
+  return process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+}
+
 export function emailProviderConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY || process.env.SMTP_HOST);
 }
@@ -39,6 +44,11 @@ export async function sendOtpEmail(target: string, code: string): Promise<Delive
     await sendViaSmtpEnv(target, otpMail(code));
     return { delivery: "sent", devMode: false };
   }
+  // Audit F01: dev fallback must NEVER be reachable in production — an
+  // unconfigured channel returns an explicit unavailable error, no code.
+  if (isProduction()) {
+    throw new ApiErr(503, "Email sign-in is temporarily unavailable. Please try again shortly.");
+  }
   return { delivery: "dev", devMode: true, devCode: code };
 }
 
@@ -46,6 +56,9 @@ export async function sendOtpSms(target: string, code: string): Promise<Delivery
   if (smsProviderConfigured()) {
     await sendViaTwilio(target, code);
     return { delivery: "sent", devMode: false };
+  }
+  if (isProduction()) {
+    throw new ApiErr(503, "SMS sign-in is temporarily unavailable. Please try again shortly.");
   }
   return { delivery: "dev", devMode: true, devCode: code };
 }

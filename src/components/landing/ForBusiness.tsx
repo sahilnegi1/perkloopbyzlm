@@ -16,7 +16,10 @@ const PITCH_POINTS = [
  */
 export function ForBusiness() {
   return (
-    <section id="for-business" className="scroll-mt-24">
+    <section id="for-business" className="scroll-mt-24 overflow-x-clip">
+      {/* overflow-x-clip: the floating "No setup fee" chip and the fixed-width
+          dashboard illustration must never widen the document on 320–360px
+          screens (audit: landing horizontal overflow). */}
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
         <div className="grid items-center gap-14 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
           {/* ——— Copy ——— */}
@@ -73,8 +76,9 @@ export function ForBusiness() {
               <div className="relative rounded-[24px] bg-[#10240F] p-5 shadow-lift grain-dark sm:p-6">
                 <CornerBrackets />
 
-                {/* floating warmth chip */}
-                <span className="absolute -top-5 -right-3 rotate-3 rounded-full bg-marigold px-3.5 py-1.5 text-xs font-bold text-forest shadow-lift sm:-top-6 sm:-right-4">
+                {/* floating warmth chip — stays inside the card on phones,
+                    hangs off the edge only where there's room */}
+                <span className="absolute -top-5 right-2 rotate-3 rounded-full bg-marigold px-3.5 py-1.5 text-xs font-bold text-forest shadow-lift sm:-top-6 sm:-right-4">
                   No setup fee
                 </span>
 

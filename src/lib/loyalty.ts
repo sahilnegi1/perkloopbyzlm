@@ -1,4 +1,4 @@
-import type { LoyaltyProgram, Prisma } from "@prisma/client";
+import { Prisma, type LoyaltyProgram } from "@prisma/client";
 import { db } from "@/lib/db";
 import { ApiErr, audit } from "@/lib/auth-helpers";
 
@@ -13,10 +13,44 @@ import { ApiErr, audit } from "@/lib/auth-helpers";
  *    updateMany guard (status/expiry/balance), so no double-spend, no replay,
  *    no negative balances are possible.
  * 3. The ledger is append-only: one LedgerEntry per movement with balanceAfter.
+ * 4. Count-then-create rules (redemption limits, one pending request, one
+ *    active program per type) run inside a SERIALIZABLE transaction so two
+ *    simultaneous requests cannot both pass the check (audit F02/F03).
  */
 
 const STAMP_COOLDOWN_MS = 30 * 60 * 1000; // ≥30 min between stamp-bearing visits
 const TXN_MIN_THRESHOLD_PAISE = 10000; // ₹100 — min-1-point threshold
+const PENDING_REDEMPTION_TTL_MS = 24 * 60 * 60 * 1000; // stale pending requests stop blocking after 24h
+
+// ─── Serializable transaction helper (audit F02/F03) ─────────────────────────
+
+const isSqlite = (url: string | undefined): boolean =>
+  Boolean(url && (url.startsWith("file:") || url.includes(":memory:")));
+
+/**
+ * Run `fn` inside a transaction with SERIALIZABLE isolation on PostgreSQL
+ * (SQLite serializes writers natively and rejects the isolation option).
+ * Transient write conflicts (Prisma P2034) are retried with jittered backoff.
+ */
+export async function dbTx<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  const attempts = 3;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await db.$transaction(fn, isSqlite(process.env.DATABASE_URL)
+        ? { maxWait: 5000, timeout: 10000 }
+        : { maxWait: 5000, timeout: 10000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (err) {
+      const retryable =
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        (err as { code?: string }).code === "P2034";
+      if (!retryable || i === attempts) throw err;
+      await new Promise((r) => setTimeout(r, 40 * i + Math.floor(Math.random() * 40)));
+    }
+  }
+  throw new ApiErr(500, "Something went wrong. Please try again.");
+}
 
 // ─── Program helpers ──────────────────────────────────────────────────────────
 
@@ -43,6 +77,20 @@ export function summarizeProgram(program: LoyaltyProgram) {
 }
 
 export type ProgramSummary = ReturnType<typeof summarizeProgram>;
+
+/**
+ * A program can only earn/redeem while ACTIVE and inside its date window
+ * (audit F05: start/end dates were displayed but never enforced).
+ */
+export function programLive(
+  program: Pick<LoyaltyProgram, "status" | "startsAt" | "endsAt">,
+  now = new Date()
+): boolean {
+  if (program.status !== "ACTIVE") return false;
+  if (program.startsAt && program.startsAt.getTime() > now.getTime()) return false;
+  if (program.endsAt && program.endsAt.getTime() < now.getTime()) return false;
+  return true;
+}
 
 /**
  * Points for a transaction amount under a POINTS program:
@@ -130,11 +178,12 @@ export async function confirmTxnAndAward(input: { token: string; customerId: str
       update: {},
     });
 
-    // Points come ONLY from this business's ACTIVE POINTS program config.
+    // Points come ONLY from this business's ACTIVE POINTS program config,
+    // honored only inside the program's date window (audit F05).
     const program = await tx.loyaltyProgram.findFirst({
       where: { businessId: txn.businessId, type: "POINTS", status: "ACTIVE" },
     });
-    const awarded = program ? pointsForAmount(txn.amountPaise, program) : 0;
+    const awarded = program && programLive(program, now) ? pointsForAmount(txn.amountPaise, program) : 0;
 
     await tx.loyaltyAccount.updateMany({
       where: { id: account.id },
@@ -232,13 +281,68 @@ export async function recordVisitAndStamp(input: { customerId: string; outletCod
     }
     const businessId = outlet.businessId;
 
-    // Cooldown compares against the customer's previous STATIC_QR visit at this
-    // business (anti-screenshot re-scan). A TXN purchase does not consume the
-    // visit stamp — points and visit stamps are different loyalty mechanics.
+    // Cooldown compares against the customer's previous QUALIFYING STATIC_QR
+    // visit at this business (anti-screenshot re-scan). A TXN purchase does not
+    // consume the visit stamp — points and visit stamps are different mechanics.
     const lastVisit = await tx.visit.findFirst({
       where: { customerId: input.customerId, businessId, source: "STATIC_QR" },
       orderBy: { createdAt: "desc" },
     });
+
+    // Stamp award only for ACTIVE STAMPS (or STARS) programs inside their date
+    // window (audit F05), with ≥30 min cooldown.
+    const stampProgram = await tx.loyaltyProgram.findFirst({
+      where: { businessId, type: "STAMPS", status: "ACTIVE" },
+    });
+    const starsProgram = stampProgram
+      ? null
+      : await tx.loyaltyProgram.findFirst({
+          where: { businessId, type: "STARS", status: "ACTIVE" },
+        });
+    const visitProgram = stampProgram ?? starsProgram;
+    const programEligible = visitProgram ? programLive(visitProgram, now) : false;
+
+    const withinCooldown =
+      lastVisit !== null && now.getTime() - lastVisit.createdAt.getTime() < STAMP_COOLDOWN_MS;
+
+    // Audit F07: a scan that falls inside the cooldown (or has no eligible
+    // program) is an ATTEMPT, not a visit. No Visit row, no visitCount bump,
+    // no lastVisitAt change — analytics and the next cooldown window stay honest.
+    if (withinCooldown || !programEligible) {
+      const existingAccount = await tx.loyaltyAccount.findUnique({
+        where: { customerId_businessId: { customerId: input.customerId, businessId } },
+      });
+      await audit(tx, {
+        actorType: "CUSTOMER",
+        actorId: input.customerId,
+        businessId,
+        action: "VISIT_RECORDED",
+        entity: "Outlet",
+        entityId: outlet.id,
+        meta: {
+          outletId: outlet.id,
+          stampsAwarded: 0,
+          cooldownActive: withinCooldown,
+          countedAsVisit: false,
+          reason: withinCooldown ? "COOLDOWN" : "NO_ELIGIBLE_PROGRAM",
+        },
+      });
+      return {
+        business: { id: outlet.business.id, name: outlet.business.name, isDemo: outlet.business.isDemo },
+        outlet: { id: outlet.id, name: outlet.name },
+        visitId: null,
+        stampsAwarded: 0,
+        stamps: existingAccount?.stamps ?? 0,
+        stampsToReward: null,
+        cooldownActive: withinCooldown,
+        nextStampAt:
+          withinCooldown && lastVisit
+            ? new Date(lastVisit.createdAt.getTime() + STAMP_COOLDOWN_MS)
+            : null,
+      };
+    }
+
+    // Qualifying visit: record it and count it exactly once.
     const visit = await tx.visit.create({
       data: {
         customerId: input.customerId,
@@ -254,24 +358,10 @@ export async function recordVisitAndStamp(input: { customerId: string; outletCod
       update: { visitCount: { increment: 1 }, lastVisitAt: now },
     });
 
-    // Stamp award only for ACTIVE STAMPS (or STARS) programs, with ≥30 min cooldown.
-    const stampProgram = await tx.loyaltyProgram.findFirst({
-      where: { businessId, type: "STAMPS", status: "ACTIVE" },
-    });
-    const starsProgram = stampProgram
-      ? null
-      : await tx.loyaltyProgram.findFirst({
-          where: { businessId, type: "STARS", status: "ACTIVE" },
-        });
-    const visitProgram = stampProgram ?? starsProgram;
-
-    const withinCooldown =
-      lastVisit !== null && now.getTime() - lastVisit.createdAt.getTime() < STAMP_COOLDOWN_MS;
-
     let stampsAwarded = 0;
     let stampsToReward: number | null = null;
 
-    if (visitProgram && !withinCooldown) {
+    {
       let perVisit = 1;
       if (starsProgram) {
         let cfg: { starsPerVisit?: unknown; starsToReward?: unknown } = {};
@@ -337,14 +427,10 @@ export async function recordVisitAndStamp(input: { customerId: string; outletCod
       action: "VISIT_RECORDED",
       entity: "Visit",
       entityId: visit.id,
-      meta: { outletId: outlet.id, stampsAwarded, cooldownActive: withinCooldown },
+      meta: { outletId: outlet.id, stampsAwarded, cooldownActive: false, countedAsVisit: true },
     });
 
     const finalAccount = await tx.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } });
-    const nextStampAt =
-      withinCooldown && visitProgram && lastVisit
-        ? new Date(lastVisit.createdAt.getTime() + STAMP_COOLDOWN_MS)
-        : null;
 
     return {
       business: { id: outlet.business.id, name: outlet.business.name, isDemo: outlet.business.isDemo },
@@ -353,8 +439,8 @@ export async function recordVisitAndStamp(input: { customerId: string; outletCod
       stampsAwarded,
       stamps: finalAccount.stamps,
       stampsToReward,
-      cooldownActive: withinCooldown,
-      nextStampAt,
+      cooldownActive: false,
+      nextStampAt: null,
     };
   });
 }
@@ -367,98 +453,111 @@ export async function createRedemption(input: {
   businessId: string;
   rewardId: string;
 }) {
-  const reward = await db.reward.findFirst({
-    where: { id: input.rewardId, businessId: input.businessId },
-    include: { program: true },
-  });
-  if (!reward) throw new ApiErr(404, "Reward not found for this business.");
-  if (!reward.active) throw new ApiErr(400, "This reward is no longer available.");
-  if (reward.program.status !== "ACTIVE") {
-    throw new ApiErr(400, "This reward's loyalty program is not active right now.");
-  }
+  // Audit F02: limit counting, pending lookup and creation used to be separate
+  // operations, so two simultaneous requests could both pass every check. All
+  // of it now runs in ONE serializable transaction (with retry on conflicts).
+  return dbTx(async (tx) => {
+    const now = new Date();
+    const reward = await tx.reward.findFirst({
+      where: { id: input.rewardId, businessId: input.businessId },
+      include: { program: true },
+    });
+    if (!reward) throw new ApiErr(404, "Reward not found for this business.");
+    if (!reward.active) throw new ApiErr(400, "This reward is no longer available.");
+    if (!programLive(reward.program, now)) {
+      throw new ApiErr(400, "This reward's loyalty program is not active right now.");
+    }
 
-  if (reward.program.perCustomerLimit != null) {
-    const used = await db.redemption.count({
+    if (reward.program.perCustomerLimit != null) {
+      const used = await tx.redemption.count({
+        where: {
+          rewardId: reward.id,
+          customerId: input.customerId,
+          status: { in: ["PENDING", "APPROVED"] },
+        },
+      });
+      if (used >= reward.program.perCustomerLimit) {
+        throw new ApiErr(403, "You have reached the redemption limit for this reward.");
+      }
+    }
+
+    // One live PENDING redemption per customer per business. A pending request
+    // older than 24h stops blocking (audit F12: abandoned requests must not
+    // trap the customer) — merchants can still decide it from their queue.
+    const pending = await tx.redemption.findFirst({
       where: {
-        rewardId: reward.id,
         customerId: input.customerId,
-        status: { in: ["PENDING", "APPROVED"] },
+        businessId: input.businessId,
+        status: "PENDING",
+        createdAt: { gt: new Date(now.getTime() - PENDING_REDEMPTION_TTL_MS) },
       },
     });
-    if (used >= reward.program.perCustomerLimit) {
-      throw new ApiErr(403, "You have reached the redemption limit for this reward.");
+    if (pending) {
+      throw new ApiErr(
+        409,
+        "You already have a pending redemption at this business. Wait for it to be decided."
+      );
     }
-  }
 
-  // One PENDING redemption per customer per business.
-  const pending = await db.redemption.findFirst({
-    where: { customerId: input.customerId, businessId: input.businessId, status: "PENDING" },
-  });
-  if (pending) {
-    throw new ApiErr(
-      409,
-      "You already have a pending redemption at this business. Wait for it to be decided."
-    );
-  }
-
-  const account = await db.loyaltyAccount.findUnique({
-    where: {
-      customerId_businessId: { customerId: input.customerId, businessId: input.businessId },
-    },
-  });
-  if (!account) {
-    throw new ApiErr(
-      400,
-      "Join this business's loyalty program first — scan their QR code to start earning."
-    );
-  }
-  const balance = reward.unit === "POINTS" ? account.points : account.stamps;
-  if (balance < reward.cost) {
-    throw new ApiErr(
-      400,
-      `You need ${reward.cost - balance} more ${
-        reward.unit === "POINTS" ? "points" : "stamps"
-      } for this reward.`
-    );
-  }
-
-  const redemption = await db.redemption.create({
-    data: {
-      rewardId: reward.id,
-      businessId: input.businessId,
-      customerId: input.customerId,
-      status: "PENDING",
-      cost: reward.cost,
-      unit: reward.unit,
-    },
-  });
-
-  await audit(db, {
-    actorType: "CUSTOMER",
-    actorId: input.customerId,
-    businessId: input.businessId,
-    action: "REDEMPTION_CREATED",
-    entity: "Redemption",
-    entityId: redemption.id,
-    meta: { rewardId: reward.id, rewardTitle: reward.title, cost: reward.cost, unit: reward.unit },
-  });
-
-  const members = await db.businessMember.findMany({
-    where: { businessId: input.businessId, role: { in: ["OWNER", "MANAGER"] } },
-  });
-  if (members.length > 0) {
-    await db.notification.createMany({
-      data: members.map((m) => ({
-        userId: m.userId,
-        businessId: input.businessId,
-        type: "REDEMPTION_UPDATE",
-        title: "New redemption request",
-        body: `A customer wants to redeem "${reward.title}".`,
-      })),
+    const account = await tx.loyaltyAccount.findUnique({
+      where: {
+        customerId_businessId: { customerId: input.customerId, businessId: input.businessId },
+      },
     });
-  }
+    if (!account) {
+      throw new ApiErr(
+        400,
+        "Join this business's loyalty program first — scan their QR code to start earning."
+      );
+    }
+    const balance = reward.unit === "POINTS" ? account.points : account.stamps;
+    if (balance < reward.cost) {
+      throw new ApiErr(
+        400,
+        `You need ${reward.cost - balance} more ${
+          reward.unit === "POINTS" ? "points" : "stamps"
+        } for this reward.`
+      );
+    }
 
-  return redemption;
+    const redemption = await tx.redemption.create({
+      data: {
+        rewardId: reward.id,
+        businessId: input.businessId,
+        customerId: input.customerId,
+        status: "PENDING",
+        cost: reward.cost,
+        unit: reward.unit,
+      },
+    });
+
+    await audit(tx, {
+      actorType: "CUSTOMER",
+      actorId: input.customerId,
+      businessId: input.businessId,
+      action: "REDEMPTION_CREATED",
+      entity: "Redemption",
+      entityId: redemption.id,
+      meta: { rewardId: reward.id, rewardTitle: reward.title, cost: reward.cost, unit: reward.unit },
+    });
+
+    const members = await tx.businessMember.findMany({
+      where: { businessId: input.businessId, role: { in: ["OWNER", "MANAGER"] } },
+    });
+    if (members.length > 0) {
+      await tx.notification.createMany({
+        data: members.map((m) => ({
+          userId: m.userId,
+          businessId: input.businessId,
+          type: "REDEMPTION_UPDATE",
+          title: "New redemption request",
+          body: `A customer wants to redeem "${reward.title}".`,
+        })),
+      });
+    }
+
+    return redemption;
+  });
 }
 
 /**

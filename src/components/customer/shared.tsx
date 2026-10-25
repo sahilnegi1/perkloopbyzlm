@@ -280,7 +280,9 @@ export function programSummary(program: ProgramSummaryT | null | undefined): str
       return rate != null ? `${rate} pts per ₹100 spent` : "Points on every spend";
     }
     case "SERVICE_COUNT": {
-      const toReward = num(cfg.countToReward);
+      // Config field is servicesToReward (validation.ts) — countToReward was a
+      // typo that rendered the raw program name.
+      const toReward = num(cfg.servicesToReward);
       return toReward != null ? `${toReward} visits → free service` : program.name;
     }
     case "SPEND": {
@@ -321,8 +323,12 @@ export type ApiState<T> = {
 
 type Payload<T> = { key: string; data: T | null; error: ApiError | null };
 
-/** GET a path and hold the result. `path === null` skips the request. */
-export function useApiData<T>(path: string | null): ApiState<T> {
+/**
+ * GET a path and hold the result. `path === null` skips the request.
+ * `pollMs` re-fetches on an interval while the document is visible — used for
+ * state a second device can change (pending approvals, notifications; audit F12).
+ */
+export function useApiData<T>(path: string | null, pollMs?: number): ApiState<T> {
   const [payload, setPayload] = useState<Payload<T>>({ key: "", data: null, error: null });
   const [tick, setTick] = useState(0);
 
@@ -356,6 +362,23 @@ export function useApiData<T>(path: string | null): ApiState<T> {
   const loading = path !== null && payload.key !== key;
   const settled = !loading && payload.key === key;
   const reload = useCallback(() => setTick((t) => t + 1), []);
+
+  // Background poll (visible tab only) — keeps approval queues and wallets fresh
+  // without a manual reload (audit F12).
+  useEffect(() => {
+    if (!path || !pollMs) return;
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") setTick((t) => t + 1);
+    }, pollMs);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setTick((t) => t + 1);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [path, pollMs]);
 
   return {
     data: settled ? payload.data : null,

@@ -10,6 +10,15 @@ function secret(): Uint8Array {
     // Dev fallback so the app runs without extra env setup in the sandbox.
     // Production deployments must set SESSION_SECRET (documented in delivery notes).
     "reward-jar-dev-secret-do-not-use-in-production-0123456789";
+  if (!process.env.SESSION_SECRET && (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")) {
+    // Audit F01: loudly flag the predictable signing secret. Kept as a warning
+    // (not a crash) so a misconfigured deploy can't lock every user out — but
+    // this must be fixed by setting SESSION_SECRET in the host's env vars.
+    console.warn(
+      "[security] SESSION_SECRET is not set — falling back to a predictable dev secret. " +
+        "Set SESSION_SECRET in the deployment environment before onboarding real users."
+    );
+  }
   return new TextEncoder().encode(raw);
 }
 

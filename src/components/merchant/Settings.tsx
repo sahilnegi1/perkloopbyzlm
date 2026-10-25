@@ -77,7 +77,10 @@ function BusinessProfileForm({ business }: { business: BusinessT }) {
     try {
       await api("/api/merchant/business", {
         method: "PUT",
+        // The update schema requires the business id (audit F04 — saving used
+        // to 400 with "id: Invalid input"); ownership is still server-checked.
         body: JSON.stringify({
+          id: business.id,
           name: name.trim(),
           category,
           description: description.trim() || null,

@@ -23,7 +23,7 @@ function Caption({ label }: { label: string }) {
  */
 export function FeaturePreviews() {
   return (
-    <section aria-label="Product previews">
+    <section aria-label="Product previews" className="overflow-x-clip">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
         <SectionHead
           index="04"
@@ -36,7 +36,7 @@ export function FeaturePreviews() {
           {/* ——— Customer wallet ——— */}
           <Reveal>
             <article className="flex h-full flex-col rounded-[24px] bg-card p-4 shadow-lift sm:p-5">
-              <div className="flex flex-1 items-center justify-center rounded-[20px] bg-secondary/70 p-6 sm:p-8">
+              <div className="flex flex-1 items-center justify-center rounded-[20px] bg-secondary/70 p-3.5 sm:p-8">
                 <PhoneMockup />
               </div>
               <div className="mt-4 flex items-center justify-between px-2 pb-1">
@@ -55,7 +55,7 @@ export function FeaturePreviews() {
           {/* ——— Merchant dashboard ——— */}
           <Reveal delay={70}>
             <article className="flex h-full flex-col rounded-[24px] bg-card p-4 shadow-lift sm:p-5">
-              <div className="flex flex-1 flex-col justify-center rounded-[20px] bg-secondary/70 p-6 sm:p-8">
+              <div className="flex flex-1 flex-col justify-center rounded-[20px] bg-secondary/70 p-3.5 sm:p-8">
                 {/* mini dashboard module */}
                 <div className="rounded-2xl border border-forest/8 bg-white p-5 shadow-soft">
                   <div className="flex items-center justify-between">

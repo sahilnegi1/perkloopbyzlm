@@ -1,9 +1,11 @@
 "use client";
 
 /**
- * Auth flow (OTP by email or Indian mobile) — steps: target → otp → business.
- * Honest dev mode: when the backend has no SMS/SMTP provider it returns
- * { devMode: true, devCode } and this UI says so plainly (amber banner).
+ * Auth flow (OTP by email) — steps: target → otp → business.
+ * Email is the only sign-in channel for launch (SMS has no provider wired);
+ * the API still accepts SMS for future use. Honest dev mode: when the backend
+ * has no SMTP provider it returns { devMode: true, devCode } and this UI says
+ * so plainly (amber banner) — local preview only, never in production.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -16,24 +18,13 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Spinner } from "@/components/customer/shared";
 import { cn } from "@/lib/utils";
 import { BusinessRegisterForm } from "@/components/auth/BusinessRegisterForm";
-import { KeyRound, Mail, RefreshCw, Smartphone, TriangleAlert } from "lucide-react";
+import { KeyRound, RefreshCw, TriangleAlert } from "lucide-react";
 
 type RoleToggle = "customer" | "merchant";
 type ModeToggle = "login" | "register";
-type Channel = "EMAIL" | "SMS";
 type Step = "target" | "otp" | "business";
 
-const PHONE_RE = /^[6-9]\d{9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/** Strips spaces/dashes and +91/91/0 prefixes → bare 10-digit mobile. */
-function normalizePhone(raw: string): string {
-  return raw
-    .replace(/[\s()\-]/g, "")
-    .replace(/^\+91/, "")
-    .replace(/^91(?=[6-9]\d{9}$)/, "")
-    .replace(/^0(?=[6-9]\d{9})/, "");
-}
 
 /** Deep links worth returning to after sign-in (never #/auth itself). */
 function consumeReturnPath(): string | null {
@@ -113,9 +104,7 @@ export function AuthFlow({
 
   const [role, setRole] = useState<RoleToggle>(initialRole);
   const [mode, setMode] = useState<ModeToggle>(initialMode);
-  const [channel, setChannel] = useState<Channel>("SMS");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [step, setStep] = useState<Step>("target");
 
   const [targetError, setTargetError] = useState<string | null>(null);
@@ -136,17 +125,12 @@ export function AuthFlow({
   const resendSecondsLeft =
     resendAt === null ? 0 : Math.max(0, Math.ceil((resendAt - now) / 1000));
 
-  const target = channel === "EMAIL" ? email.trim() : normalizePhone(phone);
+  const target = email.trim();
 
   const validateTarget = (): boolean => {
     setTargetError(null);
-    if (channel === "EMAIL") {
-      if (!EMAIL_RE.test(target)) {
-        setTargetError("Enter a valid email address.");
-        return false;
-      }
-    } else if (!PHONE_RE.test(target)) {
-      setTargetError("Enter a valid 10-digit Indian mobile number.");
+    if (!EMAIL_RE.test(target)) {
+      setTargetError("Enter a valid email address.");
       return false;
     }
     return true;
@@ -162,7 +146,7 @@ export function AuthFlow({
       const res = await post<{ delivery: string; devMode?: boolean; devCode?: string }>(
         "/api/auth/otp/request",
         {
-          channel,
+          channel: "EMAIL",
           target,
           intent: mode === "register" ? "REGISTER" : "LOGIN",
           role: role === "merchant" ? "MERCHANT_OWNER" : "CUSTOMER",
@@ -218,7 +202,7 @@ export function AuthFlow({
     setOtpNotFound(false);
     try {
       const res = await post<{ user: SessionUser }>("/api/auth/otp/verify", {
-        channel,
+        channel: "EMAIL",
         target,
         code: codeValue,
         intent: mode === "register" ? "REGISTER" : "LOGIN",
@@ -310,39 +294,24 @@ export function AuthFlow({
             ]}
           />
 
-          <Segmented
-            ariaLabel="Sign-in channel"
-            size="sm"
-            value={channel}
-            onChange={(v) => {
-              setChannel(v);
-              setTargetError(null);
-            }}
-            options={[
-              { value: "SMS", label: "Mobile", icon: <Smartphone className="h-4 w-4" aria-hidden /> },
-              { value: "EMAIL", label: "Email", icon: <Mail className="h-4 w-4" aria-hidden /> },
-            ]}
-          />
-
           <div className="space-y-1.5">
             <label
               htmlFor="auth-target"
               className="mb-1.5 block font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground"
             >
-              {channel === "EMAIL" ? "Email address" : "Mobile number"}
+              Email address
             </label>
             <Input
               id="auth-target"
               className="h-12 rounded-full px-5 text-base"
-              type={channel === "EMAIL" ? "email" : "tel"}
-              inputMode={channel === "EMAIL" ? "email" : "numeric"}
-              autoComplete={channel === "EMAIL" ? "email" : "tel-national"}
-              placeholder={channel === "EMAIL" ? "you@example.com" : "98765 43210"}
-              value={channel === "EMAIL" ? email : phone}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
               onChange={(e) => {
                 setTargetError(null);
-                if (channel === "EMAIL") setEmail(e.target.value);
-                else setPhone(e.target.value);
+                setEmail(e.target.value);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !requesting) void requestOtp();
@@ -400,18 +369,7 @@ export function AuthFlow({
           <div>
             <h1 className="font-display text-[1.75rem] font-extrabold tracking-[-0.02em] text-ink">Enter your code</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {channel === "EMAIL" ? (
-                <>
-                  Sent to <span className="font-semibold text-foreground">{target}</span>
-                </>
-              ) : (
-                <>
-                  Sent by SMS to{" "}
-                  <span className="font-semibold tabular-nums text-foreground">
-                    +91 {target.slice(0, 5)} {target.slice(5)}
-                  </span>
-                </>
-              )}
+              Sent to <span className="font-semibold text-foreground">{target}</span>
             </p>
           </div>
 
@@ -425,7 +383,7 @@ export function AuthFlow({
                 Dev mode — provider not configured
               </p>
               <p className="mt-1.5 text-[13px] text-sienna/90">
-                No real SMS or email was sent. Your sign-in code:
+                No real email was sent. Your sign-in code:
               </p>
               <p className="mt-1 font-display text-xl font-extrabold tabular-nums tracking-[0.35em] text-sienna">
                 {devCode}
@@ -515,7 +473,7 @@ export function AuthFlow({
             }}
             className="press mx-auto block text-sm font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
-            Use a different number or email
+            Use a different email
           </button>
         </>
       )}

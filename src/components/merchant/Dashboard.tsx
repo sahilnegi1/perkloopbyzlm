@@ -31,6 +31,7 @@ export function DashboardScreen({ business }: { business: BusinessT }) {
   const analytics = useApiData<{ analytics: AnalyticsT }>("/api/merchant/analytics");
   const pending = useApiData<{ redemptions: RedemptionRowT[] }>(
     "/api/merchant/redemptions?status=PENDING",
+    15_000,
   );
 
   const a = analytics.data?.analytics ?? null;
@@ -45,7 +46,9 @@ export function DashboardScreen({ business }: { business: BusinessT }) {
         eyebrow={`${business.category.toLowerCase().replace("_", " ")} · ${business.city ?? "your city"}`}
         title="Dashboard"
         actions={
-          <div className="flex items-center gap-2">
+          // Audit (responsive): the two quick actions used to force 320px
+          // viewports to scroll horizontally — wrap instead.
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
               onClick={() => navigate("#/merchant/qr?mode=amount")}
               variant="outline"

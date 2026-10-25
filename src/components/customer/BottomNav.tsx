@@ -45,7 +45,7 @@ export function BottomNav({
   return (
     <nav
       aria-label="Customer app"
-      className="shrink-0 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 md:hidden"
+      className="shrink-0 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-card/80 md:hidden"
     >
       <ul className="mx-auto flex max-w-md items-stretch">
         {CUSTOMER_TABS.map((t) => {
@@ -89,7 +89,9 @@ export function TopTabs({ subRoute }: { subRoute: string[] }) {
   return (
     <nav
       aria-label="Customer app"
-      className="hidden shrink-0 items-center gap-1.5 overflow-x-auto px-4 py-3 md:flex md:justify-center scroll-slim"
+      // Audit (responsive): compact paddings so all five tabs fit inside the
+      // desktop app shell without horizontal scroll/clipping.
+      className="hidden shrink-0 items-center gap-1 overflow-x-auto px-3 py-3 md:flex md:justify-center scroll-slim"
     >
       {CUSTOMER_TABS.map((t) => {
         const isActive = t.key === active;
@@ -101,7 +103,7 @@ export function TopTabs({ subRoute }: { subRoute: string[] }) {
             onClick={() => navigate(t.href)}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "press flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+              "press flex h-10 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
               isActive
                 ? "bg-forest text-primary-foreground shadow-sm"
                 : "bg-card text-muted-foreground hover:text-foreground"

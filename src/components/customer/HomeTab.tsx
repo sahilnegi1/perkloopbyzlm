@@ -28,19 +28,38 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Bell, Gift, ReceiptText, ScanLine, Sparkles, Stamp } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 5) return "Up late";
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
+/**
+ * Time-of-day greeting, recomputed while the tab is visible so it never
+ * gets stuck on a stale part of the day (e.g. "Good morning" at night).
+ */
+function useGreeting(): string {
+  const compute = () => {
+    const h = new Date().getHours();
+    if (h < 5) return "Up late";
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  };
+  const [text, setText] = useState(compute);
+  useEffect(() => {
+    const update = () => {
+      if (document.visibilityState === "visible") setText(compute());
+    };
+    const id = setInterval(update, 30_000);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, []);
+  return text;
 }
 
 function firstName(name: string | null | undefined): string {
   const n = (name ?? "").trim();
-  return n ? n.split(/\s+/)[0] : "there";
+  return n ? n.split(/\s+/)[0] : "Friend";
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -92,6 +111,7 @@ export function HomeTab({
   notifications: ApiState<{ notifications: NotificationT[]; unread: number }>;
 }) {
   const { user } = useSession();
+  const greetingText = useGreeting();
   const wallet = useApiData<{ accounts: WalletListItem[] }>(user ? "/api/wallet" : null);
   const businesses = useApiData<{ businesses: BusinessListItem[] }>("/api/businesses");
 
@@ -112,7 +132,7 @@ export function HomeTab({
       <Reveal>
         <div>
           <p className="font-mono text-[11px] font-medium tracking-[0.14em] text-sienna uppercase">
-            {greeting()},
+            {greetingText},
           </p>
           <h1 className="font-display mt-1 text-[1.75rem] leading-tight font-extrabold tracking-[-0.02em] text-ink">
             {firstName(user?.name)}

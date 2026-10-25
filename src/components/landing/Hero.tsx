@@ -88,7 +88,7 @@ export function Hero() {
         className="pointer-events-none absolute -top-24 right-[10%] h-72 w-72 rounded-full bg-[#F59E0B]/10 blur-3xl"
       />
 
-      <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pt-14 pb-20 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:pt-24 lg:pb-28">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pt-24 pb-20 sm:px-6 sm:pt-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:pt-24 lg:pb-28">
         {/* ——— Copy ——— */}
         <div className="max-w-2xl">
           <motion.div
