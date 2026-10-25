@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=Libre+Franklin:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  /* Cover — Template 01: HUD Data Terminal (typesetting/cover.md)
+     W=794 H=1123 U=40 (A4 @96dpi). Layers: L1 bg grid (clipped), L2 anchor line, L3 text. */
+  @page { size: 794px 1123px; margin: 0; }
+  html, body { margin: 0; padding: 0; background: #fcfcfb; }
+  .poster {
+    position: relative;
+    width: 794px; height: 1123px;
+    background: #fcfcfb;
+    font-family: 'Inter', 'Libre Franklin', sans-serif;
+    color: #242321;
+  }
+  /* Layer 1 — background grid, clipped */
+  .layer1 {
+    position: absolute; inset: 0; overflow: hidden; z-index: 1;
+    background-image:
+      linear-gradient(rgba(100,92,65,0.05) 0.5px, transparent 0.5px),
+      linear-gradient(90deg, rgba(100,92,65,0.05) 0.5px, transparent 0.5px);
+    background-size: 50px 50px;
+  }
+  /* Layer 2 — ultra-thick vertical anchor line at 0.12W, 0.1H..0.9H */
+  .layer2 { position: absolute; inset: 0; z-index: 2; }
+  .anchor-line {
+    position: absolute;
+    left: 95px; top: 112px;
+    width: 8px; height: 899px;
+    background: #645c41;
+  }
+  /* Layer 3 — content, left edge = 0.12W + 40px */
+  .layer3 { position: absolute; inset: 0; z-index: 3; }
+  .kicker {
+    position: absolute; left: 145px; top: 168px;
+    font-size: 21px; font-weight: 400; letter-spacing: 4px;
+    text-transform: uppercase; opacity: 0.6; color: #242321;
+  }
+  .hero {
+    position: absolute; left: 145px; top: 337px;
+    font-size: 84px; line-height: 1.12; font-weight: 900;
+    letter-spacing: -1px; color: #645c41;
+  }
+  .summary {
+    position: absolute; left: 145px; top: 561px;
+    width: 460px;
+    font-size: 22px; line-height: 1.6; font-weight: 300;
+    opacity: 0.85; color: #242321;
+  }
+  .meta {
+    position: absolute; left: 145px; top: 842px;
+    font-size: 24px; line-height: 1.55; font-weight: 400; color: #242321;
+  }
+  .meta .lbl { color: #78756e; }
+  .meta b { font-weight: 700; }
+  .footer {
+    position: absolute; left: 145px; top: 1030px;
+    font-size: 16px; font-weight: 400; letter-spacing: 3px;
+    text-transform: uppercase; opacity: 0.6; color: #242321;
+  }
+  @media screen {
+    html { background: #fcfcfb; }
+    body { scale: min(1, calc(100vh / 1123)); transform-origin: top left; }
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="layer1"></div>
+  <div class="layer2"><div class="anchor-line"></div></div>
+  <div class="layer3">
+    <div class="kicker">Production Audit &middot; Remediation Report</div>
+    <div class="hero">Reward<br>Jar</div>
+    <div class="summary">
+      Resolution of every user-reported defect and the code-level remediation of
+      the external production-readiness audit &mdash; QR scanning reliability,
+      loyalty-engine concurrency, email-only authentication, and small-screen
+      layout integrity &mdash; verified end to end and deployed to production.
+    </div>
+    <div class="meta">
+      <span class="lbl">Commit</span>&nbsp;&nbsp;<b>e0b5d3b</b> &middot; main<br>
+      <span class="lbl">Deploy</span>&nbsp;&nbsp;Vercel &middot; production &middot; live<br>
+      <span class="lbl">Date</span>&nbsp;&nbsp;25 October 2026
+    </div>
+    <div class="footer">Reward Jar &middot; Loyalty Infrastructure</div>
+  </div>
+</div>
+</body>
+</html>
